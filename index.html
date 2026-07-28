@@ -3,15 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<!-- Content-Security-Policy: 依存ライブラリが汚染されても、通信先を Supabase と CDN だけに限定します。
-     ※ Supabase の URL を変更したら、下の connect-src のドメインも必ず合わせて変更してください。 -->
+<!-- Content-Security-Policy: 依存ライブラリが汚染されても、通信先を Supabase・CDN・Turnstile だけに限定します。
+     ※ Supabase の URL を変更したら、下の connect-src のドメインも必ず合わせて変更してください。
+     ※ challenges.cloudflare.com は Turnstile 用です（script/connect/frame）。 -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+  script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com 'unsafe-inline';
   style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
   font-src https://fonts.gstatic.com;
   img-src 'self' data:;
-  connect-src https://xuekmypfzxszpmmqmfsl.supabase.co wss://xuekmypfzxszpmmqmfsl.supabase.co;
+  connect-src https://xuekmypfzxszpmmqmfsl.supabase.co wss://xuekmypfzxszpmmqmfsl.supabase.co https://challenges.cloudflare.com;
+  frame-src https://challenges.cloudflare.com;
   base-uri 'none';
   form-action 'none';
 " />
@@ -130,6 +132,9 @@
 
   <div id="banner" class="banner"></div>
 
+  <!-- Turnstile ウィジェット。初回訪問時の匿名ログインのときだけ表示されます。 -->
+  <div id="tsContainer" style="display:none;justify-content:center;margin-bottom:18px;"></div>
+
   <section class="felt draw">
     <label class="field-label" for="nameInput">ぬいぐるみの名前</label>
     <input id="nameInput" class="name-input" type="text" placeholder="例）くまちゃん" maxlength="24" autocomplete="off" />
@@ -165,12 +170,18 @@
   integrity="sha384-6foGJ1oz/y3anEo0BXRtTgBK1GvpnR0GbJZb0ijG+nBAJ4rYT+VqlD/9e3CSiFIA"
   crossorigin="anonymous"
   referrerpolicy="no-referrer"></script>
+<!-- Cloudflare Turnstile ローダー。頻繁に更新されるため SRI は付けません（CSPで配信元を限定）。 -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script>
 /* ============================================================
    ▼ ここにあなたの Supabase プロジェクトの値を入れてください
    ============================================================ */
 const SUPABASE_URL = "https://xuekmypfzxszpmmqmfsl.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_a75xUa9gRXrH1cLB5sdGsw_MJ_0VThq";
+
+/* ▼ Cloudflare Turnstile の「サイトキー」を入れてください（公開情報なので埋め込みOK）
+   Secret キーは Supabase ダッシュボード側にだけ設定します。ここには入れないでください。 */
+const TURNSTILE_SITEKEY = "0x4AAAAAAD__N08vFGBCb_oY";
 /* ============================================================ */
 
 const $ = (id) => document.getElementById(id);
@@ -183,6 +194,35 @@ function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("sho
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),1800); }
 function banner(html){ const b=$("banner"); b.innerHTML=html; b.classList.add("show"); }
 function disableDraw(){ $("drawBtn").disabled=true; }
+
+/* ---- Cloudflare Turnstile ----
+   ウィジェットを表示してトークンを1つ取得します。多くの場合は無操作（不可視）で通り、
+   チャレンジが必要なときだけ画面に表示されます（appearance:'interaction-only'）。 */
+function getTurnstileToken(){
+  return new Promise((resolve, reject) => {
+    const container = $("tsContainer");
+    container.style.display = "flex";
+    const render = () => {
+      try {
+        window.turnstile.render(container, {
+          sitekey: TURNSTILE_SITEKEY,
+          appearance: "interaction-only",
+          callback: (token) => resolve(token),
+          "error-callback": () => reject(new Error("turnstile-error")),
+          "expired-callback": () => reject(new Error("turnstile-expired")),
+        });
+      } catch(e){ reject(e); }
+    };
+    if(window.turnstile && window.turnstile.render){ render(); return; }
+    // ローダーがまだ読み込み中なら少し待つ
+    let tries = 0;
+    const iv = setInterval(() => {
+      if(window.turnstile && window.turnstile.render){ clearInterval(iv); render(); }
+      else if(++tries > 100){ clearInterval(iv); reject(new Error("turnstile-not-loaded")); }
+    }, 100);
+  });
+}
+function hideTurnstile(){ const c=$("tsContainer"); if(c){ c.style.display="none"; } }
 
 let sb=null, myUid=null;
 let behaviors=[];  // [{id, text, mine}]
@@ -198,14 +238,27 @@ async function init(){
     banner("セットアップが未完了です。ファイル冒頭の <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> を、あなたのプロジェクトの値に置き換えてください。");
     disableDraw(); return;
   }
+  if(TURNSTILE_SITEKEY.includes("YOUR-")){
+    banner("セットアップが未完了です。ファイル冒頭の <code>TURNSTILE_SITEKEY</code> に、Cloudflare Turnstile のサイトキーを設定してください。");
+    disableDraw(); return;
+  }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // 匿名ログイン（端末ごとにセッションが保存され、同じユーザーとして扱われます）
+  // セッションが無い＝初回訪問のときだけ、Turnstile で人間確認してからログインします。
   let { data:{ session } } = await sb.auth.getSession();
   if(!session){
-    const { error } = await sb.auth.signInAnonymously();
+    let captchaToken;
+    try {
+      captchaToken = await getTurnstileToken();
+    } catch(e){
+      banner("人間確認（Turnstile）に失敗しました。ページを再読み込みしてください。解決しない場合は <code>TURNSTILE_SITEKEY</code> の値をご確認ください。");
+      disableDraw(); return;
+    }
+    const { error } = await sb.auth.signInAnonymously({ options:{ captchaToken } });
+    hideTurnstile();
     if(error){
-      banner("匿名ログインに失敗しました。Supabaseの Authentication → Providers で「Anonymous sign-ins」を有効にしてください。");
+      banner("匿名ログインに失敗しました。Supabase の Authentication で「Anonymous sign-ins」の有効化と、Bot and Abuse Protection の Turnstile Secret 設定をご確認ください。");
       disableDraw(); return;
     }
   }
