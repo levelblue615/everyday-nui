@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ぬい日記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#efeaf6; --bg-2:#f6f1f9; --surface:#fffdf9; --ink:#4c4356; --muted:#9a8fa8;
+    --berry:#e5738e; --berry-dk:#cf5c78; --sage:#8ab59b; --stitch:#d9c2e4;
+    --line:#e7dced; --radius:22px; --shadow:0 10px 30px rgba(90,60,110,.10);
+    --font:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--font); color:var(--ink); line-height:1.7; -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #fbeef4 0%, transparent 55%),
+      radial-gradient(1000px 700px at 110% 10%, #e9f3ec 0%, transparent 50%),
+      linear-gradient(180deg,var(--bg) 0%,var(--bg-2) 100%);
+  }
+  .wrap{max-width:620px;margin:0 auto;padding:34px 18px 80px}
+  header{text-align:center;margin-bottom:26px}
+  .title{font-size:32px;font-weight:800;letter-spacing:.06em;margin:0}
+  .title .dot{color:var(--berry)}
+  .subtitle{margin:6px 0 0;color:var(--muted);font-size:14px;letter-spacing:.04em}
+
+  .banner{display:none;background:#fff4f6;border:2px dashed var(--berry);color:var(--berry-dk);
+    border-radius:16px;padding:14px 16px;margin-bottom:20px;font-size:14px}
+  .banner.show{display:block}
+  .banner code{background:#fde7ec;padding:1px 6px;border-radius:6px;font-size:13px}
+
+  .felt{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);position:relative;padding:24px 22px}
+  .felt::after{content:"";position:absolute;inset:7px;border:2px dashed var(--stitch);
+    border-radius:calc(var(--radius) - 9px);pointer-events:none}
+
+  .draw{margin-bottom:20px}
+  label.field-label{display:block;font-size:13px;color:var(--muted);margin:0 0 8px 2px;letter-spacing:.05em}
+  .name-input{width:100%;border:2px solid var(--line);background:#fff;border-radius:16px;
+    padding:14px 16px;font-family:var(--font);font-size:18px;color:var(--ink);outline:none;transition:border-color .15s}
+  .name-input:focus{border-color:var(--berry)}
+  .name-input::placeholder{color:#c7bcd2}
+  .draw-btn{margin-top:14px;width:100%;border:none;cursor:pointer;background:var(--berry);color:#fff;
+    font-family:var(--font);font-weight:800;font-size:18px;letter-spacing:.08em;padding:15px 18px;border-radius:18px;
+    box-shadow:0 6px 0 var(--berry-dk);transition:transform .06s,box-shadow .06s,background .15s}
+  .draw-btn:hover{background:#ec7f98}
+  .draw-btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--berry-dk)}
+  .draw-btn:disabled{background:#d8cee2;color:#fff;box-shadow:0 6px 0 #c3b6d0;cursor:default}
+  .hint{margin:12px 2px 0;font-size:12.5px;color:var(--muted);text-align:center}
+
+  .result{margin-top:20px;display:none}
+  .result.show{display:block}
+  .bubble{background:linear-gradient(180deg,#fffef8,#fdf6ef);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:30px 26px 26px;position:relative;text-align:center;
+    animation:pop .5s cubic-bezier(.2,1.3,.4,1) both, sway 4.5s ease-in-out .5s infinite}
+  .bubble::after{content:"";position:absolute;inset:7px;border:2px dashed var(--sage);
+    border-radius:calc(var(--radius) - 9px);pointer-events:none}
+  .stamp{display:inline-block;font-size:12px;letter-spacing:.14em;color:var(--sage);
+    border:2px dashed var(--sage);border-radius:999px;padding:3px 12px;margin-bottom:14px}
+  .sentence{font-size:22px;font-weight:700;line-height:1.85;margin:0}
+  .sentence .who{color:var(--berry)}
+  .locked-note{margin:14px 0 0;font-size:12.5px;color:var(--muted)}
+  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes sway{0%,100%{transform:rotate(-.5deg)}50%{transform:rotate(.5deg)}}
+
+  .panel{margin-top:26px}
+  .panel>summary{list-style:none;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;
+    padding:15px 18px;background:var(--surface);border-radius:16px;box-shadow:var(--shadow);font-weight:700;font-size:15px}
+  .panel>summary::-webkit-details-marker{display:none}
+  .panel>summary .count{font-size:12px;font-weight:700;color:var(--sage);background:#eef6f0;border-radius:999px;padding:3px 11px}
+  .panel[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  .panel-body{background:var(--surface);border-radius:0 0 16px 16px;box-shadow:var(--shadow);padding:18px;margin-top:-6px}
+
+  .row{display:flex;gap:8px;margin-bottom:10px}
+  .row .name-input{font-size:15px;padding:11px 13px}
+  .mini-btn{border:none;cursor:pointer;white-space:nowrap;background:var(--sage);color:#fff;font-family:var(--font);
+    font-weight:700;font-size:14px;padding:0 16px;border-radius:14px;transition:filter .15s}
+  .mini-btn:hover{filter:brightness(1.05)}
+  .mini-btn.ghost{background:#fff;color:var(--muted);border:2px solid var(--line)}
+  .mini-btn.berry{background:var(--berry)}
+  textarea.bulk{width:100%;min-height:120px;resize:vertical;font-family:var(--font);font-size:14px;color:var(--ink);
+    border:2px solid var(--line);border-radius:14px;padding:12px 13px;outline:none;line-height:1.7}
+  textarea.bulk:focus{border-color:var(--sage)}
+  .divider{height:1px;background:var(--line);margin:16px 0;border:0}
+  .search{margin-bottom:10px}
+  .list{max-height:260px;overflow-y:auto;border:2px solid var(--line);border-radius:14px;padding:6px}
+  .list-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;font-size:14.5px}
+  .list-item:hover{background:#faf6fc}
+  .list-item .txt{flex:1}
+  .mine-tag{font-size:11px;color:var(--sage);border:1px dashed var(--sage);border-radius:999px;padding:1px 7px}
+  .del{border:none;background:transparent;cursor:pointer;color:#d6a9b7;font-size:18px;line-height:1;padding:2px 6px;border-radius:8px}
+  .del:hover{background:#fbeef2;color:var(--berry)}
+  .empty{text-align:center;color:var(--muted);font-size:14px;padding:18px}
+  .panel-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .hist-item{display:flex;justify-content:space-between;gap:12px;padding:9px 4px;border-bottom:1px dashed var(--line);font-size:14px}
+  .hist-item:last-child{border-bottom:0}
+  .hist-item .date{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .hist-item .who2{color:var(--berry);font-weight:700}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+    padding:11px 20px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .25s;
+    z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:30px}
+  @media (prefers-reduced-motion:reduce){.bubble{animation:pop .3s ease both}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="title">ぬい日記<span class="dot">.</span></h1>
+    <p class="subtitle">今日、あの子はなにしてる？</p>
+  </header>
+
+  <div id="banner" class="banner"></div>
+
+  <section class="felt draw">
+    <label class="field-label" for="nameInput">ぬいぐるみの名前</label>
+    <input id="nameInput" class="name-input" type="text" placeholder="例）くまちゃん" maxlength="24" autocomplete="off" />
+    <button id="drawBtn" class="draw-btn">今日のようすを見る</button>
+    <p class="hint">名前ごとに 1日1回。押すと今日の行動が決まります。</p>
+  </section>
+
+  <section id="result" class="result">
+    <div class="bubble">
+      <span class="stamp" id="resultDate">TODAY</span>
+      <p class="sentence"><span class="who" id="resultWho"></span><span id="resultText"></span></p>
+      <p class="locked-note" id="lockedNote"></p>
+    </div>
+  </section>
+
+  <details class="panel" id="managePanel">
+    <summary>行動リストを管理 <span class="count" id="countBadge">…</span></summary>
+    <div class="panel-body">
+      <p class="hint" style="text-align:left;margin:0 0 14px;">この行動リストは<b>全ユーザー共通</b>です。追加した内容はみんなに表示されます。削除できるのは自分が追加した行動だけです。</p>
+
+      <div class="row">
+        <input id="addInput" class="name-input" type="text" placeholder="行動を1件追加（例：窓辺で日向ぼっこをしている。）" />
+        <button id="addBtn" class="mini-btn">追加</button>
+      </div>
+
+      <hr class="divider" />
+
+      <label class="field-label">まとめて追加（1行に1文ずつ貼り付け）</label>
+      <textarea id="bulkInput" class="bulk" placeholder="窓辺で日向ぼっこをしている。&#10;こっそりおやつをつまみ食いしている。&#10;リモコンを探して部屋を歩き回っている。"></textarea>
+      <div class="panel-actions">
+        <button id="bulkBtn" class="mini-btn berry">まとめて追加</button>
+        <button id="exportBtn" class="mini-btn ghost">全部コピー（バックアップ）</button>
+      </div>
+
+      <hr class="divider" />
+
+      <input id="searchInput" class="name-input search" type="text" placeholder="登録済みを検索…" />
+      <div id="list" class="list"><p class="empty">読み込み中…</p></div>
+    </div>
+  </details>
+
+  <details class="panel" id="histPanel">
+    <summary>これまでの記録 <span class="count" id="histBadge">…</span></summary>
+    <div class="panel-body">
+      <div id="histList"><p class="empty">読み込み中…</p></div>
+      <div class="panel-actions">
+        <button id="resetTodayBtn" class="mini-btn ghost">今日の記録をやり直す</button>
+      </div>
+    </div>
+  </details>
+
+  <footer>行動リストはみんなで共有 ／ 記録はあなた専用に保存されます</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   ▼ ここにあなたの Supabase プロジェクトの値を入れてください
+   ============================================================ */
+const SUPABASE_URL = "https://xuekmypfzxszpmmqmfsl.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "sb_publishable_a75xUa9gRXrH1cLB5sdGsw_MJ_0VThq";
+/* ============================================================ */
+
+const $ = (id) => document.getElementById(id);
+const todayStr = () => {
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+let toastTimer;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),1800); }
+function banner(html){ const b=$("banner"); b.innerHTML=html; b.classList.add("show"); }
+function disableDraw(){ $("drawBtn").disabled=true; }
+
+let sb=null, myUid=null;
+let behaviors=[];  // [{id, text, mine}]
+let history=[];    // [{name, date, text}]
+
+/* ---- init ---- */
+async function init(){
+  if(!window.supabase){
+    banner("Supabaseライブラリの読み込みに失敗しました。ネットワーク／CDNを確認してください。");
+    disableDraw(); return;
+  }
+  if(SUPABASE_URL.includes("YOUR-") || SUPABASE_ANON_KEY.includes("YOUR-")){
+    banner("セットアップが未完了です。ファイル冒頭の <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> を、あなたのプロジェクトの値に置き換えてください。");
+    disableDraw(); return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // 匿名ログイン（端末ごとにセッションが保存され、同じユーザーとして扱われます）
+  let { data:{ session } } = await sb.auth.getSession();
+  if(!session){
+    const { error } = await sb.auth.signInAnonymously();
+    if(error){
+      banner("匿名ログインに失敗しました。Supabaseの Authentication → Providers で「Anonymous sign-ins」を有効にしてください。");
+      disableDraw(); return;
+    }
+  }
+  const { data:{ user } } = await sb.auth.getUser();
+  myUid = user ? user.id : null;
+
+  bindEvents();
+  await loadBehaviors();
+  await loadHistory();
+}
+
+/* ---- behaviors (shared) ---- */
+async function loadBehaviors(){
+  const { data, error } = await sb.from("behaviors")
+    .select("id,text,created_by").order("created_at",{ ascending:true });
+  if(error){ toast("行動リストの読み込みに失敗しました"); return; }
+  behaviors = (data||[]).map(r => ({ id:r.id, text:r.text, mine: r.created_by===myUid }));
+  renderCount(); renderList($("searchInput").value);
+}
+
+async function addOne(){
+  const v = $("addInput").value.trim();
+  if(!v){ toast("行動を入力してね"); return; }
+  const { error } = await sb.from("behaviors").insert({ text:v });
+  if(error){
+    if(error.code==="23505") toast("すでに登録されています");
+    else toast("追加に失敗しました");
+    return;
+  }
+  $("addInput").value=""; await loadBehaviors(); toast("追加しました");
+}
+
+async function addBulk(){
+  const lines = $("bulkInput").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  if(lines.length===0){ toast("貼り付けてから押してね"); return; }
+  const uniq = [...new Set(lines)].map(text=>({ text }));
+  const before = behaviors.length;
+  const { error } = await sb.from("behaviors")
+    .upsert(uniq, { onConflict:"text", ignoreDuplicates:true });
+  if(error){ toast("追加に失敗しました"); return; }
+  $("bulkInput").value=""; await loadBehaviors();
+  toast(`${Math.max(0, behaviors.length-before)}件を追加しました`);
+}
+
+async function delOne(id){
+  const { error } = await sb.from("behaviors").delete().eq("id", id);
+  if(error){ toast("自分が追加した行動だけ削除できます"); return; }
+  await loadBehaviors();
+}
+
+function exportAll(){
+  const text = behaviors.map(b=>b.text).join("\n");
+  navigator.clipboard.writeText(text)
+    .then(()=>toast(`${behaviors.length}件をコピーしました`))
+    .catch(()=>toast("コピーできませんでした"));
+}
+
+/* ---- draw (per user, 1/day/plush) ---- */
+async function draw(){
+  const name = $("nameInput").value.trim();
+  if(!name){ toast("ぬいぐるみの名前を入れてね"); $("nameInput").focus(); return; }
+  if(behaviors.length===0){ toast("先に行動リストを登録してね"); return; }
+  const day = todayStr();
+
+  const { data: ex } = await sb.from("records")
+    .select("text").eq("plush_name",name).eq("day",day).maybeSingle();
+  if(ex){ showResult(name, ex.text, day, true); return; }
+
+  const sentence = behaviors[Math.floor(Math.random()*behaviors.length)].text;
+  const { error } = await sb.from("records").insert({ plush_name:name, day, text:sentence });
+  if(error){
+    // 同時実行などで既に入っていた場合は取り直して表示
+    const { data: ex2 } = await sb.from("records")
+      .select("text").eq("plush_name",name).eq("day",day).maybeSingle();
+    if(ex2){ showResult(name, ex2.text, day, true); return; }
+    toast("保存に失敗しました"); return;
+  }
+  await loadHistory();
+  showResult(name, sentence, day, false);
+}
+
+function showResult(name, sentence, day, locked){
+  $("resultWho").textContent = name + "は";
+  $("resultText").textContent = sentence;
+  $("resultDate").textContent = day.replace(/-/g,".");
+  $("lockedNote").textContent = locked ? "今日はもう見ました。また明日ね。" : "";
+  const r=$("result"); r.classList.add("show");
+  const b=r.querySelector(".bubble"); b.style.animation="none"; void b.offsetWidth; b.style.animation="";
+  r.scrollIntoView({ behavior:"smooth", block:"center" });
+}
+
+/* ---- history (per user) ---- */
+async function loadHistory(){
+  const { data, error } = await sb.from("records")
+    .select("plush_name,day,text")
+    .order("day",{ ascending:false }).order("created_at",{ ascending:false })
+    .limit(60);
+  if(error){ return; }
+  history = (data||[]).map(r=>({ name:r.plush_name, date:r.day, text:r.text }));
+  renderHistory();
+}
+
+async function resetToday(){
+  const name = $("nameInput").value.trim();
+  const day = todayStr();
+  if(!name){ toast("名前を入れてからやり直してね"); return; }
+  const { error } = await sb.from("records").delete().eq("plush_name",name).eq("day",day);
+  if(error){ toast("やり直しに失敗しました"); return; }
+  $("result").classList.remove("show");
+  await loadHistory();
+  toast(`${name}の今日をリセットしました`);
+}
+
+/* ---- render ---- */
+function renderCount(){ $("countBadge").textContent = behaviors.length + "件"; }
+
+function renderList(filter=""){
+  const list=$("list"); const f=(filter||"").trim();
+  const items = f ? behaviors.filter(b=>b.text.includes(f)) : behaviors;
+  if(items.length===0){
+    list.innerHTML = `<p class="empty">${behaviors.length===0 ? "まだ登録がありません。" : "見つかりませんでした。"}</p>`;
+    return;
+  }
+  list.innerHTML="";
+  items.forEach(item=>{
+    const row=document.createElement("div"); row.className="list-item";
+    const span=document.createElement("span"); span.className="txt"; span.textContent=item.text;
+    row.appendChild(span);
+    if(item.mine){
+      const tag=document.createElement("span"); tag.className="mine-tag"; tag.textContent="自分";
+      row.appendChild(tag);
+      const del=document.createElement("button"); del.className="del"; del.textContent="×"; del.title="削除";
+      del.onclick=()=>delOne(item.id);
+      row.appendChild(del);
+    }
+    list.appendChild(row);
+  });
+}
+
+function renderHistory(){
+  $("histBadge").textContent = history.length + "件";
+  const el=$("histList");
+  if(history.length===0){ el.innerHTML=`<p class="empty">まだ記録はありません。</p>`; return; }
+  el.innerHTML="";
+  history.forEach(h=>{
+    const row=document.createElement("div"); row.className="hist-item";
+    const left=document.createElement("span");
+    left.innerHTML=`<span class="who2">${escapeHtml(h.name)}</span> ${escapeHtml(h.text)}`;
+    const right=document.createElement("span"); right.className="date"; right.textContent=String(h.date).replace(/-/g,".");
+    row.appendChild(left); row.appendChild(right); el.appendChild(row);
+  });
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+/* ---- events ---- */
+function bindEvents(){
+  $("drawBtn").addEventListener("click", draw);
+  $("nameInput").addEventListener("keydown", e=>{ if(e.key==="Enter") draw(); });
+  $("addBtn").addEventListener("click", addOne);
+  $("addInput").addEventListener("keydown", e=>{ if(e.key==="Enter") addOne(); });
+  $("bulkBtn").addEventListener("click", addBulk);
+  $("exportBtn").addEventListener("click", exportAll);
+  $("resetTodayBtn").addEventListener("click", resetToday);
+  $("searchInput").addEventListener("input", e=>renderList(e.target.value));
+}
+
+init();
+</script>
+</body>
+</html>
