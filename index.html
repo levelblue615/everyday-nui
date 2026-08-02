@@ -17,7 +17,7 @@
   base-uri 'none';
   form-action 'none';
 " />
-<title>ぬい観察日記</title>
+<title>1日1ぬい</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -139,13 +139,13 @@
     <label class="field-label" for="nameInput">ぬいぐるみの名前</label>
     <input id="nameInput" class="name-input" type="text" placeholder="例）くまちゃん" maxlength="24" autocomplete="off" />
     <button id="drawBtn" class="draw-btn">今日の様子を観察する</button>
-    <p class="hint">ぬいぐるみの名前ごとに1日1回。押すと今日の様子を観察できます。</p>
+    <p class="hint">名前ごとに 1日1回。押すと今日の様子を観察できます。</p>
   </section>
 
   <section id="result" class="result">
     <div class="bubble">
       <span class="stamp" id="resultDate">TODAY</span>
-      <p class="sentence"><span class="who" id="resultWho"></span><span id="resultText"></span></p>
+      <p class="sentence"><span id="resultText"></span><span class="who" id="resultWho"></span></p>
       <p class="locked-note" id="lockedNote"></p>
     </div>
   </section>
@@ -305,8 +305,8 @@ async function draw(){
 }
 
 function showResult(name, sentence, day, locked){
-  $("resultWho").textContent = name + "は";
-  $("resultText").textContent = sentence;
+  $("resultWho").textContent = name;
+  $("resultText").textContent = trimStop(sentence);
   $("resultDate").textContent = day.replace(/-/g,".");
   $("lockedNote").textContent = locked ? "今日はもう観察ずみ。また明日ね。" : "";
   const r=$("result"); r.classList.add("show");
@@ -347,11 +347,15 @@ function renderHistory(){
   history.forEach(h=>{
     const row=document.createElement("div"); row.className="hist-item";
     const left=document.createElement("span");
-    left.innerHTML=`<span class="who2">${escapeHtml(h.name)}</span> ${escapeHtml(h.text)}`;
+    left.innerHTML=`${escapeHtml(trimStop(h.text))}<span class="who2">${escapeHtml(h.name)}</span>`;
     const right=document.createElement("span"); right.className="date"; right.textContent=String(h.date).replace(/-/g,".");
     row.appendChild(left); row.appendChild(right); el.appendChild(row);
   });
 }
+
+/* 「××しているくまちゃん」の形にするため、行動文の末尾の句点だけを取り除きます。
+   （！ や ？ は雰囲気が変わるので、あえて残しています） */
+function trimStop(s){ return String(s).replace(/[。．.]+\s*$/, ""); }
 
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
 
