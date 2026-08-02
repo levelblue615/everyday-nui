@@ -79,6 +79,13 @@
   .sentence{font-size:22px;font-weight:700;line-height:1.85;margin:0}
   .sentence .who{color:var(--berry)}
   .locked-note{margin:14px 0 0;font-size:12.5px;color:var(--muted)}
+  .share-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  .share-btn{border:2px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;
+    font-family:var(--font);font-weight:700;font-size:13.5px;padding:8px 15px;border-radius:999px;
+    transition:border-color .15s,color .15s,transform .06s}
+  .share-btn:hover{border-color:var(--berry);color:var(--berry-dk)}
+  .share-btn:active{transform:translateY(2px)}
+  .share-btn:focus-visible{outline:2px solid var(--berry);outline-offset:2px}
   @keyframes pop{from{opacity:0;transform:scale(.9) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
   @keyframes sway{0%,100%{transform:rotate(-.5deg)}50%{transform:rotate(.5deg)}}
 
@@ -139,7 +146,7 @@
     <label class="field-label" for="nameInput">ぬいぐるみの名前</label>
     <input id="nameInput" class="name-input" type="text" placeholder="例）くまちゃん" maxlength="24" autocomplete="off" />
     <button id="drawBtn" class="draw-btn">今日の様子を観察する</button>
-    <p class="hint">名前ごとに 1日1回。押すと今日の様子を観察できます。</p>
+    <p class="hint">名前ごとに 1日1回。一度観察したら、その日はやり直せません。</p>
   </section>
 
   <section id="result" class="result">
@@ -147,6 +154,12 @@
       <span class="stamp" id="resultDate">TODAY</span>
       <p class="sentence" id="resultText"></p>
       <p class="locked-note" id="lockedNote"></p>
+      <div class="share-row">
+        <button id="shareNativeBtn" class="share-btn" style="display:none">シェアする</button>
+        <button id="shareXBtn" class="share-btn">Xに投稿</button>
+        <button id="shareLineBtn" class="share-btn">LINEで送る</button>
+        <button id="shareCopyBtn" class="share-btn">文章をコピー</button>
+      </div>
     </div>
   </section>
 
@@ -154,9 +167,6 @@
     <summary>これまでの観察記録 <span class="count" id="histBadge">…</span></summary>
     <div class="panel-body">
       <div id="histList"><p class="empty">読み込み中…</p></div>
-      <div class="panel-actions">
-        <button id="resetTodayBtn" class="mini-btn ghost">今日の記録をやり直す</button>
-      </div>
     </div>
   </details>
 
@@ -326,15 +336,43 @@ async function loadHistory(){
   renderHistory();
 }
 
-async function resetToday(){
-  const name = $("nameInput").value.trim();
-  const day = todayStr();
-  if(!name){ toast("名前を入れてからやり直してね"); return; }
-  const { error } = await sb.from("records").delete().eq("plush_name",name).eq("day",day);
-  if(error){ toast("やり直しに失敗しました"); return; }
-  $("result").classList.remove("show");
-  await loadHistory();
-  toast(`${name}の今日をリセットしました`);
+/* ---- share ----
+   画面に出ている観察結果を、そのままSNSや任意のアプリに共有します。
+   共有するのは「日付・観察文・このページのURL」だけで、記録そのものは公開されません。
+   観察文は renderSentence で {name} を置換ずみの表示テキストをそのまま使います。 */
+const SHARE_HASHTAG = "ぬい観察日記";
+function shareUrl(){ return location.origin + location.pathname; }
+function shareText(){
+  const day = $("resultDate").textContent;
+  const line = $("resultText").textContent;
+  return `${day}\n${line}\n#${SHARE_HASHTAG}`;
+}
+function openShare(url){ window.open(url, "_blank", "noopener,noreferrer"); }
+
+async function shareNative(){
+  try{
+    await navigator.share({ text: shareText(), url: shareUrl() });
+  }catch(e){
+    if(e && e.name === "AbortError"){ return; }  // ユーザーが閉じただけ
+    toast("シェアできませんでした");
+  }
+}
+function shareToX(){
+  openShare("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText())
+    + "&url=" + encodeURIComponent(shareUrl()));
+}
+function shareToLine(){
+  openShare("https://social-plugins.line.me/lineit/share?url=" + encodeURIComponent(shareUrl())
+    + "&text=" + encodeURIComponent(shareText()));
+}
+async function shareCopy(){
+  const body = `${shareText()}\n${shareUrl()}`;
+  try{
+    await navigator.clipboard.writeText(body);
+    toast("コピーしました");
+  }catch(e){
+    toast("コピーできませんでした");
+  }
 }
 
 /* ---- render ---- */
@@ -379,7 +417,15 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<
 function bindEvents(){
   $("drawBtn").addEventListener("click", draw);
   $("nameInput").addEventListener("keydown", e=>{ if(e.key==="Enter") draw(); });
-  $("resetTodayBtn").addEventListener("click", resetToday);
+  $("shareXBtn").addEventListener("click", shareToX);
+  $("shareLineBtn").addEventListener("click", shareToLine);
+  $("shareCopyBtn").addEventListener("click", shareCopy);
+  // OS標準の共有シート（主にスマホ）が使える端末でだけ「シェアする」を出します
+  if(navigator.share){
+    const b = $("shareNativeBtn");
+    b.style.display = "";
+    b.addEventListener("click", shareNative);
+  }
 }
 
 init();
