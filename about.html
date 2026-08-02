@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- このページはJavaScriptを一切使いません。CSPも通信先をフォントだけに絞っています。 -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+  font-src https://fonts.gstatic.com;
+  img-src 'self' data:;
+  base-uri 'none';
+  form-action 'none';
+" />
+<title>このサイトについて｜ぬい観察日記</title>
+<meta name="description" content="ぬい観察日記は、ぬいぐるみの名前を入れると「今日の様子」が一文で届く、1日1回のちいさな観察アプリです。使い方と仕組みを説明します。" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#efeaf6; --bg-2:#f6f1f9; --surface:#fffdf9; --ink:#4c4356; --muted:#9a8fa8;
+    --berry:#e5738e; --berry-dk:#cf5c78; --sage:#8ab59b; --stitch:#d9c2e4;
+    --line:#e7dced; --radius:22px; --shadow:0 10px 30px rgba(90,60,110,.10);
+    --font:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--font); color:var(--ink); line-height:1.9; -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #fbeef4 0%, transparent 55%),
+      radial-gradient(1000px 700px at 110% 10%, #e9f3ec 0%, transparent 50%),
+      linear-gradient(180deg,var(--bg) 0%,var(--bg-2) 100%);
+  }
+  .wrap{max-width:660px;margin:0 auto;padding:34px 18px 60px}
+  header{text-align:center;margin-bottom:26px}
+  .title{font-size:30px;font-weight:800;letter-spacing:.06em;margin:0}
+  .title .dot{color:var(--berry)}
+  .subtitle{margin:6px 0 0;color:var(--muted);font-size:14px;letter-spacing:.04em}
+
+  .felt{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);position:relative;
+    padding:26px 24px;margin-bottom:20px}
+  .felt::after{content:"";position:absolute;inset:7px;border:2px dashed var(--stitch);
+    border-radius:calc(var(--radius) - 9px);pointer-events:none}
+  .felt > *{position:relative}
+
+  h2{font-size:19px;font-weight:800;margin:0 0 12px;letter-spacing:.04em}
+  h2 .mark{color:var(--berry);margin-right:7px}
+  h3{font-size:15px;font-weight:700;margin:20px 0 6px;color:var(--berry-dk);letter-spacing:.03em}
+  p{margin:0 0 14px;font-size:15px}
+  p:last-child{margin-bottom:0}
+  ul{margin:0 0 14px;padding-left:1.3em;font-size:15px}
+  li{margin-bottom:7px}
+  strong{font-weight:700}
+  a{color:var(--berry-dk)}
+  a:hover{color:var(--berry)}
+  .note{font-size:13.5px;color:var(--muted)}
+
+  /* サンプルの観察カード */
+  .sample{background:linear-gradient(180deg,#fffef8,#fdf6ef);border-radius:var(--radius);
+    padding:26px 22px 22px;position:relative;text-align:center;margin:6px 0 18px}
+  .sample::after{content:"";position:absolute;inset:7px;border:2px dashed var(--sage);
+    border-radius:calc(var(--radius) - 9px);pointer-events:none}
+  .sample .stamp{display:inline-block;font-size:12px;letter-spacing:.14em;color:var(--sage);
+    border:2px dashed var(--sage);border-radius:999px;padding:3px 12px;margin-bottom:12px;position:relative}
+  .sample .sentence{font-size:19px;font-weight:700;line-height:1.85;margin:0;position:relative}
+  .sample .who{color:var(--berry)}
+
+  .steps{counter-reset:step;list-style:none;padding:0;margin:0}
+  .steps li{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;font-size:15px}
+  .steps li::before{counter-increment:step;content:counter(step);flex:none;
+    width:26px;height:26px;border-radius:999px;background:#fbeef2;color:var(--berry-dk);
+    font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:4px}
+
+  .qa{border-bottom:1px dashed var(--line);padding:14px 0}
+  .qa:first-of-type{padding-top:0}
+  .qa:last-of-type{border-bottom:0;padding-bottom:0}
+  .qa .q{font-weight:700;font-size:15px;margin:0 0 6px}
+  .qa .q::before{content:"Q";color:var(--sage);font-weight:800;margin-right:8px}
+  .qa .a{font-size:14.5px;margin:0;color:var(--ink)}
+
+  .cta{display:block;text-align:center;text-decoration:none;background:var(--berry);color:#fff;
+    font-weight:800;font-size:17px;letter-spacing:.08em;padding:15px 18px;border-radius:18px;
+    box-shadow:0 6px 0 var(--berry-dk);margin:4px 0 8px}
+  .cta:hover{background:#ec7f98;color:#fff}
+  .cta:active{transform:translateY(4px);box-shadow:0 2px 0 var(--berry-dk)}
+  .cta:focus-visible{outline:3px solid var(--sage);outline-offset:3px}
+
+  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:26px}
+  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
+    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
+  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="title">ぬい観察日記<span class="dot">.</span></h1>
+    <p class="subtitle">このサイトについて</p>
+  </header>
+
+  <section class="felt">
+    <h2><span class="mark">◆</span>どんなサイト？</h2>
+    <p>ぬいぐるみの名前を入れてボタンを押すと、その子の<strong>「今日の様子」が一文だけ</strong>届きます。それだけのサイトです。</p>
+    <div class="sample">
+      <span class="stamp">TODAY</span>
+      <p class="sentence">オムレツのおふとんにくるまって眠る<span class="who">くまちゃん</span></p>
+    </div>
+    <p>観察できるのは<strong>1つの名前につき1日1回</strong>。引き直しはできません。今日どんな様子だったかは、その日いちどきりのものです。</p>
+    <p>届いた文は、あなただけの観察記録として残っていきます。おうちの子を何人（何匹）登録しても大丈夫です。</p>
+  </section>
+
+  <section class="felt">
+    <h2><span class="mark">◆</span>使い方</h2>
+    <ol class="steps">
+      <li>ぬいぐるみの名前を入力します。ニックネームでも、いつも呼んでいる呼び方でもかまいません。</li>
+      <li>「今日の様子を観察する」を押します。その子の今日の一文が表示されます。</li>
+      <li>気に入ったら、そのままSNSにシェアできます。</li>
+      <li>「これまでの観察記録」を開くと、過去の記録を見返せます。</li>
+    </ol>
+    <p class="note">名前は表示とシェアに使うので、本名やメールアドレスなど、人に知られたくない情報は入れないでください。</p>
+  </section>
+
+  <section class="felt">
+    <h2><span class="mark">◆</span>仕組み</h2>
+    <p>観察文は、あらかじめ用意された500件以上の文章の中から、その日その名前ぶんだけランダムに選ばれます。文章はすべて運営者が書き下ろしたもので、利用者が追加・編集することはできません。</p>
+    <p>ログインもメールアドレスの登録も不要です。はじめて開いたときにブラウザごとの<strong>匿名IDが自動で発行され</strong>、それがあなたの観察記録の持ち主になります。名前もメールも登録しないので、こちらから「誰が使っているか」は分かりません。</p>
+    <p>そのかわり、<strong>記録は開いたブラウザに紐づきます</strong>。別の端末やブラウザで開くと別人あつかいになり、記録は引き継がれません。ブラウザの履歴・サイトデータを消した場合も同じです。</p>
+    <p class="note">くわしくは<a href="privacy.html">プライバシーポリシー</a>と<a href="terms.html">利用規約</a>をご覧ください。</p>
+  </section>
+
+  <section class="felt">
+    <h2><span class="mark">◆</span>よくある質問</h2>
+
+    <div class="qa">
+      <p class="q">お金はかかりますか？</p>
+      <p class="a">かかりません。無料です。会員登録もありません。</p>
+    </div>
+
+    <div class="qa">
+      <p class="q">引き直しはできませんか？</p>
+      <p class="a">できません。「その日の様子」は1回きりです。翌日になれば、また新しい一文が引けます。</p>
+    </div>
+
+    <div class="qa">
+      <p class="q">スマホを変えたら記録はどうなりますか？</p>
+      <p class="a">残念ながら引き継げません。記録はブラウザごとの匿名IDに紐づいているためです。残しておきたい記録は、スクリーンショットなどで手元に保存しておくのがおすすめです。</p>
+    </div>
+
+    <div class="qa">
+      <p class="q">記録は他の人に見られますか？</p>
+      <p class="a">見られません。観察記録は自分の匿名IDのものだけが表示される仕組みです。ただし、シェアボタンでSNSに投稿したものは公開されます。</p>
+    </div>
+
+    <div class="qa">
+      <p class="q">観察文を追加してほしい／直してほしい</p>
+      <p class="a">文章の追加・修正は運営者だけが行えます。ご要望があれば下の連絡先までお知らせください。</p>
+    </div>
+
+    <div class="qa">
+      <p class="q">最初に「人間かどうかの確認」が出ました</p>
+      <p class="a">自動プログラムによる大量アクセスを防ぐため、初回だけCloudflare Turnstileという仕組みで確認しています。ほとんどの場合は何も操作せずに通過します。</p>
+    </div>
+  </section>
+
+  <section class="felt">
+    <h2><span class="mark">◆</span>運営者・お問い合わせ</h2>
+    <p>運営者：アユラ（@ayura_plus）<br />
+       連絡先：<a href="https://wavebox.me/wave/4jof0y7tcjd8mrnf/" target="_blank" rel="noopener noreferrer">WaveBox</a>（メッセージフォーム）</p>
+    <p class="note">個人が趣味で運営しています。返信までお時間をいただくことがあります。</p>
+  </section>
+
+  <a class="cta" href="index.html">観察をはじめる</a>
+
+  <nav class="links">
+    <a href="index.html">ホーム</a>
+    <a href="terms.html">利用規約</a>
+    <a href="privacy.html">プライバシーポリシー</a>
+  </nav>
+
+  <footer>ぬい観察日記</footer>
+</div>
+</body>
+</html>
