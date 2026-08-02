@@ -17,7 +17,7 @@
   base-uri 'none';
   form-action 'none';
 " />
-<title>1日1ぬい</title>
+<title>ぬい観察日記</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -126,7 +126,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1 class="title">1にち1ぬい<span class="dot">.</span></h1>
+    <h1 class="title">ぬい観察日記<span class="dot">.</span></h1>
     <p class="subtitle">今日のぬいぐるみを、そっと観察。</p>
   </header>
 
@@ -145,13 +145,13 @@
   <section id="result" class="result">
     <div class="bubble">
       <span class="stamp" id="resultDate">TODAY</span>
-      <p class="sentence"><span id="resultText"></span><span class="who" id="resultWho"></span></p>
+      <p class="sentence" id="resultText"></p>
       <p class="locked-note" id="lockedNote"></p>
     </div>
   </section>
 
   <details class="panel" id="histPanel">
-    <summary>これまでの行動記録 <span class="count" id="histBadge">…</span></summary>
+    <summary>これまでの観察記録 <span class="count" id="histBadge">…</span></summary>
     <div class="panel-body">
       <div id="histList"><p class="empty">読み込み中…</p></div>
       <div class="panel-actions">
@@ -160,7 +160,7 @@
     </div>
   </details>
 
-  <footer>行動記録はあなた専用に保存されます</footer>
+  <footer>観察記録はあなた専用に保存されます</footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -305,8 +305,7 @@ async function draw(){
 }
 
 function showResult(name, sentence, day, locked){
-  $("resultWho").textContent = name;
-  $("resultText").textContent = trimStop(sentence);
+  renderSentence($("resultText"), sentence, name, "who");
   $("resultDate").textContent = day.replace(/-/g,".");
   $("lockedNote").textContent = locked ? "今日はもう観察ずみ。また明日ね。" : "";
   const r=$("result"); r.classList.add("show");
@@ -347,13 +346,30 @@ function renderHistory(){
   history.forEach(h=>{
     const row=document.createElement("div"); row.className="hist-item";
     const left=document.createElement("span");
-    left.innerHTML=`${escapeHtml(trimStop(h.text))}<span class="who2">${escapeHtml(h.name)}</span>`;
+    renderSentence(left, h.text, h.name, "who2");
     const right=document.createElement("span"); right.className="date"; right.textContent=String(h.date).replace(/-/g,".");
     row.appendChild(left); row.appendChild(right); el.appendChild(row);
   });
 }
 
-/* 「××しているくまちゃん」の形にするため、行動文の末尾の句点だけを取り除きます。
+/* 行動文の中の {name} を、入力されたぬいぐるみの名前に差し替えて描画します。
+   名前の部分だけ色を変えるため、テキストと <span> を組み立てて入れています。
+   {name} を含まない古い形式の文は、末尾に名前を付ける従来どおりの表示になります。 */
+function renderSentence(el, sentence, name, cls){
+  el.textContent = "";
+  const parts = trimStop(sentence).split("{name}");
+  if(parts.length === 1){ parts.push(""); }   // 旧形式は末尾に名前
+  parts.forEach((p, i) => {
+    if(i > 0){
+      const who = document.createElement("span");
+      who.className = cls; who.textContent = name;
+      el.appendChild(who);
+    }
+    if(p) el.appendChild(document.createTextNode(p));
+  });
+}
+
+/* 「××している○○」の形にするため、行動文の末尾の句点だけを取り除きます。
    （！ や ？ は雰囲気が変わるので、あえて残しています） */
 function trimStop(s){ return String(s).replace(/[。．.]+\s*$/, ""); }
 
