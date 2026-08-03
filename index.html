@@ -132,8 +132,14 @@
   .del:hover{background:#fbeef2;color:var(--berry)}
   .empty{text-align:center;color:var(--muted);font-size:14px;padding:18px}
   .panel-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .hist-item{display:flex;justify-content:space-between;gap:12px;padding:9px 4px;border-bottom:1px dashed var(--line);font-size:14px}
+  .hist-item{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+    width:100%;padding:10px 8px;border:0;border-bottom:1px dashed var(--line);border-radius:10px;
+    background:transparent;font-family:var(--font);color:var(--ink);font-size:14px;text-align:left;
+    cursor:pointer;transition:background .15s}
+  .hist-item:hover{background:#faf6fc}
+  .hist-item:focus-visible{outline:2px solid var(--berry);outline-offset:-2px}
   .hist-item:last-child{border-bottom:0}
+  .hist-note{margin:0 0 8px 2px;font-size:12.5px;color:var(--muted)}
   .hist-item .date{color:var(--muted);font-size:12.5px;white-space:nowrap}
   .hist-item .who2{color:var(--berry);font-weight:700}
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
@@ -169,10 +175,8 @@
       <p class="sentence" id="resultText"></p>
       <p class="locked-note" id="lockedNote"></p>
       <div class="share-row">
-        <button id="shareImgBtn" class="share-btn primary">画像にする</button>
+        <button id="shareImgBtn" class="share-btn primary">画像を保存</button>
         <button id="shareNativeBtn" class="share-btn" style="display:none">シェアする</button>
-        <button id="shareXBtn" class="share-btn">Xに投稿</button>
-        <button id="shareLineBtn" class="share-btn">LINEで送る</button>
         <button id="shareCopyBtn" class="share-btn">文章をコピー</button>
       </div>
     </div>
@@ -193,15 +197,13 @@
   </footer>
 </div>
 
-<!-- 画像プレビュー。「画像にする」を押したときだけ開きます。 -->
+<!-- 保存がうまくいかない端末むけの控え（画像を長押しで保存してもらいます） -->
 <div class="sheet" id="imgSheet" role="dialog" aria-modal="true" aria-label="観察カードの画像">
   <div class="sheet-inner">
-    <h2>今日の観察カード</h2>
-    <img id="sheetImg" class="sheet-img" alt="今日の観察カード" />
-    <p class="sheet-hint" id="sheetHint">画像を長押しでも保存できます。</p>
+    <h2>観察カード</h2>
+    <img id="sheetImg" class="sheet-img" alt="観察カード" />
+    <p class="sheet-hint">画像を長押し（パソコンは右クリック）して保存してください。</p>
     <div class="sheet-actions">
-      <button id="sheetShareBtn" class="share-btn primary" style="display:none">画像をシェア</button>
-      <button id="sheetSaveBtn" class="share-btn">画像を保存</button>
       <button id="sheetCloseBtn" class="share-btn">閉じる</button>
     </div>
   </div>
@@ -333,7 +335,7 @@ async function draw(){
 
   const { data: ex } = await sb.from("records")
     .select("text").eq("plush_name",name).eq("day",day).maybeSingle();
-  if(ex){ showResult(name, ex.text, day, true); return; }
+  if(ex){ showResult(name, ex.text, day, "locked"); return; }
 
   const sentence = behaviors[Math.floor(Math.random()*behaviors.length)].text;
   const { error } = await sb.from("records").insert({ plush_name:name, day, text:sentence });
@@ -341,19 +343,22 @@ async function draw(){
     // 同時実行などで既に入っていた場合は取り直して表示
     const { data: ex2 } = await sb.from("records")
       .select("text").eq("plush_name",name).eq("day",day).maybeSingle();
-    if(ex2){ showResult(name, ex2.text, day, true); return; }
+    if(ex2){ showResult(name, ex2.text, day, "locked"); return; }
     toast("保存に失敗しました"); return;
   }
   await loadHistory();
-  showResult(name, sentence, day, false);
+  showResult(name, sentence, day, "new");
 }
 
-function showResult(name, sentence, day, locked){
+/* mode: "new"（引いたばかり） / "locked"（今日はもう観察ずみ） / "past"（観察記録からの再表示） */
+function showResult(name, sentence, day, mode){
   lastShown = { name, day };
   cardCanvas = null; cardBlob = null;   // 前回作った画像は破棄（別の子・別の日と混ざらないように）
   renderSentence($("resultText"), sentence, name, "who");
-  $("resultDate").textContent = day.replace(/-/g,".");
-  $("lockedNote").textContent = locked ? "今日はもう観察ずみ。また明日ね。" : "";
+  $("resultDate").textContent = String(day).replace(/-/g,".");
+  $("lockedNote").textContent =
+    mode === "locked" ? "今日はもう観察ずみ。また明日ね。" :
+    mode === "past"   ? "観察記録から表示しています。" : "";
   const r=$("result"); r.classList.add("show");
   const b=r.querySelector(".bubble"); b.style.animation="none"; void b.offsetWidth; b.style.animation="";
   r.scrollIntoView({ behavior:"smooth", block:"center" });
@@ -383,7 +388,6 @@ function shareText(){
   const line = $("resultText").textContent;
   return `${day}\n${line}\n#${SHARE_HASHTAG}`;
 }
-function openShare(url){ window.open(url, "_blank", "noopener,noreferrer"); }
 
 /* ============================================================
    ---- 観察カードの画像化 ----
@@ -394,7 +398,8 @@ function openShare(url){ window.open(url, "_blank", "noopener,noreferrer"); }
      ・画面には無い「サイト名」を画像の中に入れられる
    という利点があります。外部ライブラリは使わないので、CSPの変更も不要です。
    ============================================================ */
-const CARD_SIZE = 1080;
+/* 黄金比（1:1.618）の横長。SNSのタイムラインで切り取られにくい形です。 */
+const CARD_W = 1618, CARD_H = 1000;
 const CARD_FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif';
 const C_INK="#4c4356", C_MUTED="#9a8fa8", C_BERRY="#e5738e", C_SAGE="#8ab59b", C_SURFACE="#fffdf9";
 /* 禁則処理：行頭に置けない文字（句読点・閉じ括弧・小書き仮名・長音）と、行末に置けない文字（開き括弧） */
@@ -455,7 +460,7 @@ function wrapChars(ctx, chars, maxW){
 }
 /* 文が長いときは文字を少しずつ小さくして、カードの中に必ず収めます。 */
 function layoutSentence(ctx, chars, maxW, maxH){
-  for(let size = 62; size >= 30; size -= 2){
+  for(let size = 68; size >= 30; size -= 2){
     ctx.font = `700 ${size}px ${CARD_FONT}`;
     const lines = wrapChars(ctx, chars, maxW);
     const lineH = Math.round(size * 1.8);
@@ -471,7 +476,7 @@ async function ensureCardFont(text){
   if(!document.fonts || !document.fonts.load) return;
   try{
     await Promise.all([
-      document.fonts.load(`700 62px "M PLUS Rounded 1c"`, text),
+      document.fonts.load(`700 68px "M PLUS Rounded 1c"`, text),
       document.fonts.load(`800 34px "M PLUS Rounded 1c"`, text),
       document.fonts.load(`500 30px "M PLUS Rounded 1c"`, text),
     ]);
@@ -484,34 +489,34 @@ async function drawCard(){
   const dateText = $("resultDate").textContent;
   await ensureCardFont(chars.map(c=>c.ch).join("") + dateText + "ぬい観察日記");
 
-  const S = CARD_SIZE;
+  const W = CARD_W, H = CARD_H;
   const cv = document.createElement("canvas");
-  cv.width = S; cv.height = S;
+  cv.width = W; cv.height = H;
   const ctx = cv.getContext("2d");
-  const cx = S / 2;
+  const cx = W / 2;
 
   // 背景：アプリと同じ、薄紫にピンクと若葉がにじむグラデーション
-  const base = ctx.createLinearGradient(0,0,0,S);
+  const base = ctx.createLinearGradient(0,0,0,H);
   base.addColorStop(0,"#efeaf6"); base.addColorStop(1,"#f6f1f9");
-  ctx.fillStyle = base; ctx.fillRect(0,0,S,S);
-  const pink = ctx.createRadialGradient(S*0.15,-S*0.1,0, S*0.15,-S*0.1,S*0.85);
+  ctx.fillStyle = base; ctx.fillRect(0,0,W,H);
+  const pink = ctx.createRadialGradient(W*0.12,-H*0.15,0, W*0.12,-H*0.15,W*0.7);
   pink.addColorStop(0,"rgba(251,238,244,1)"); pink.addColorStop(1,"rgba(251,238,244,0)");
-  ctx.fillStyle = pink; ctx.fillRect(0,0,S,S);
-  const green = ctx.createRadialGradient(S*1.05,S*0.1,0, S*1.05,S*0.1,S*0.8);
+  ctx.fillStyle = pink; ctx.fillRect(0,0,W,H);
+  const green = ctx.createRadialGradient(W*1.02,H*0.1,0, W*1.02,H*0.1,W*0.62);
   green.addColorStop(0,"rgba(233,243,236,1)"); green.addColorStop(1,"rgba(233,243,236,0)");
-  ctx.fillStyle = green; ctx.fillRect(0,0,S,S);
+  ctx.fillStyle = green; ctx.fillRect(0,0,W,H);
 
   // フェルトのカード
-  const M = 72, CW = S - M*2, CH = S - M*2;
+  const M = 64, CW = W - M*2, CH = H - M*2;
   ctx.save();
   ctx.shadowColor = "rgba(90,60,110,.16)"; ctx.shadowBlur = 40; ctx.shadowOffsetY = 14;
-  ctx.fillStyle = C_SURFACE; rrect(ctx, M, M, CW, CH, 60); ctx.fill();
+  ctx.fillStyle = C_SURFACE; rrect(ctx, M, M, CW, CH, 56); ctx.fill();
   ctx.restore();
 
   // 内側の点線ステッチ
   ctx.save();
   ctx.setLineDash([14,12]); ctx.lineWidth = 4; ctx.strokeStyle = C_SAGE;
-  rrect(ctx, M+22, M+22, CW-44, CH-44, 42); ctx.stroke();
+  rrect(ctx, M+20, M+20, CW-40, CH-40, 40); ctx.stroke();
   ctx.restore();
 
   ctx.textAlign = "left"; ctx.textBaseline = "middle";
@@ -519,7 +524,7 @@ async function drawCard(){
   // 日付スタンプ（点線の丸枠）
   ctx.font = `500 30px ${CARD_FONT}`;
   const stampW = ctx.measureText(dateText).width + 76;
-  const stampH = 64, stampY = M + 96;
+  const stampH = 58, stampY = M + 72;
   ctx.save();
   ctx.setLineDash([9,8]); ctx.lineWidth = 3; ctx.strokeStyle = C_SAGE;
   rrect(ctx, cx - stampW/2, stampY, stampW, stampH, stampH/2); ctx.stroke();
@@ -528,15 +533,15 @@ async function drawCard(){
   ctx.fillText(dateText, cx, stampY + stampH/2 + 1);
 
   // 差出人（下段）
-  const footY = M + CH - 118;
-  ctx.font = `800 34px ${CARD_FONT}`; ctx.fillStyle = C_BERRY;
+  const footY = M + CH - 96;
+  ctx.font = `800 32px ${CARD_FONT}`; ctx.fillStyle = C_BERRY;
   ctx.fillText("ぬい観察日記", cx, footY);
-  ctx.font = `500 24px ${CARD_FONT}`; ctx.fillStyle = C_MUTED;
-  ctx.fillText(shareUrl().replace(/^https?:\/\//,""), cx, footY + 46);
+  ctx.font = `500 23px ${CARD_FONT}`; ctx.fillStyle = C_MUTED;
+  ctx.fillText(shareUrl().replace(/^https?:\/\//,""), cx, footY + 42);
 
   // 観察文（カードの空きスペースの中央に置く）
-  const top = stampY + stampH + 56, bottom = footY - 66;
-  const box = { w: CW - 176, h: bottom - top };
+  const top = stampY + stampH + 48, bottom = footY - 56;
+  const box = { w: CW - 300, h: bottom - top };
   const { lines, lineH } = layoutSentence(ctx, chars, box.w, box.h);
   const blockTop = top + (box.h - lines.length*lineH) / 2;
   ctx.textAlign = "left";
@@ -568,50 +573,39 @@ function cardFile(){
   catch(e){ return null; }
 }
 
-/* 「画像にする」→ 画像を作ってプレビューを開く */
-async function openCardSheet(){
+/* 「画像を保存」→ 画像を作って、そのまま端末に保存します。
+   保存に対応していない一部のブラウザでは、代わりにプレビューを開いて
+   「長押しで保存」してもらいます。 */
+async function saveCard(){
   const btn = $("shareImgBtn"), label = btn.textContent;
   btn.disabled = true; btn.textContent = "作成中…";
   try{
     cardCanvas = await drawCard();
     cardBlob = await canvasToBlob(cardCanvas);
-    $("sheetImg").src = cardCanvas.toDataURL("image/png");  // data: は CSP の img-src で許可済み
-    const file = cardFile();
-    const canShareFile = !!(file && navigator.canShare && navigator.canShare({ files:[file] }));
-    $("sheetShareBtn").style.display = canShareFile ? "" : "none";
-    $("sheetHint").textContent = canShareFile
-      ? "画像を長押しでも保存できます。"
-      : "「画像を保存」を押すか、画像を長押しして保存してください。";
-    $("imgSheet").classList.add("show");
+    if(!cardBlob) throw new Error("no-blob");
+
+    const a = document.createElement("a");
+    if(!("download" in a)) { openCardSheet(); return; }   // 保存に非対応 → 長押し保存へ
+    const url = URL.createObjectURL(cardBlob);
+    a.href = url; a.download = cardFileName();
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast("画像を保存しました");
   }catch(e){
-    toast("画像を作成できませんでした");
+    if(cardCanvas){ openCardSheet(); }
+    else { toast("画像を作成できませんでした"); }
   }finally{
     btn.disabled = false; btn.textContent = label;
   }
 }
+
+/* 控え：作った画像をそのまま見せて、長押し（右クリック）で保存してもらいます */
+function openCardSheet(){
+  if(!cardCanvas) return;
+  $("sheetImg").src = cardCanvas.toDataURL("image/png");  // data: は CSP の img-src で許可済み
+  $("imgSheet").classList.add("show");
+}
 function closeCardSheet(){ $("imgSheet").classList.remove("show"); }
-
-function saveCard(){
-  if(!cardBlob){ toast("画像がまだありません"); return; }
-  const url = URL.createObjectURL(cardBlob);
-  const a = document.createElement("a");
-  a.href = url; a.download = cardFileName();
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-  toast("画像を保存しました");
-}
-
-/* プレビューの中の「画像をシェア」：画像を共有シートに渡します */
-async function shareCardImage(){
-  const file = cardFile();
-  if(!file){ saveCard(); return; }
-  try{
-    await navigator.share({ files:[file], text: shareText() });
-  }catch(e){
-    if(e && e.name === "AbortError") return;
-    saveCard();
-  }
-}
 
 /* 「シェアする」（OS標準の共有シート）：観察文と画像をいっしょに渡します。
    画像を受け付けない端末・アプリのときは、自動で文章だけの共有に切り替わります。 */
@@ -636,14 +630,6 @@ async function shareNative(){
     toast("シェアできませんでした");
   }
 }
-function shareToX(){
-  openShare("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText())
-    + "&url=" + encodeURIComponent(shareUrl()));
-}
-function shareToLine(){
-  openShare("https://social-plugins.line.me/lineit/share?url=" + encodeURIComponent(shareUrl())
-    + "&text=" + encodeURIComponent(shareText()));
-}
 async function shareCopy(){
   const body = `${shareText()}\n${shareUrl()}`;
   try{
@@ -660,12 +646,18 @@ function renderHistory(){
   const el=$("histList");
   if(history.length===0){ el.innerHTML=`<p class="empty">まだ記録はありません。</p>`; return; }
   el.innerHTML="";
+  const note=document.createElement("p"); note.className="hist-note";
+  note.textContent="タップすると大きく表示して、画像にできます。";
+  el.appendChild(note);
   history.forEach(h=>{
-    const row=document.createElement("div"); row.className="hist-item";
+    const row=document.createElement("button"); row.className="hist-item"; row.type="button";
     const left=document.createElement("span");
     renderSentence(left, h.text, h.name, "who2");
     const right=document.createElement("span"); right.className="date"; right.textContent=String(h.date).replace(/-/g,".");
-    row.appendChild(left); row.appendChild(right); el.appendChild(row);
+    row.appendChild(left); row.appendChild(right);
+    // 過去の記録も、今日の結果と同じカードに出します（画像化もそのまま使えます）
+    row.addEventListener("click", () => showResult(h.name, h.text, h.date, "past"));
+    el.appendChild(row);
   });
 }
 
@@ -696,9 +688,7 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<
 function bindEvents(){
   $("drawBtn").addEventListener("click", draw);
   $("nameInput").addEventListener("keydown", e=>{ if(e.key==="Enter") draw(); });
-  $("shareImgBtn").addEventListener("click", openCardSheet);
-  $("shareXBtn").addEventListener("click", shareToX);
-  $("shareLineBtn").addEventListener("click", shareToLine);
+  $("shareImgBtn").addEventListener("click", saveCard);
   $("shareCopyBtn").addEventListener("click", shareCopy);
   // OS標準の共有シート（主にスマホ）が使える端末でだけ「シェアする」を出します
   if(navigator.share){
@@ -706,9 +696,7 @@ function bindEvents(){
     b.style.display = "";
     b.addEventListener("click", shareNative);
   }
-  // 画像プレビュー
-  $("sheetShareBtn").addEventListener("click", shareCardImage);
-  $("sheetSaveBtn").addEventListener("click", saveCard);
+  // 保存できなかったときの控え
   $("sheetCloseBtn").addEventListener("click", closeCardSheet);
   $("imgSheet").addEventListener("click", e => { if(e.target === $("imgSheet")) closeCardSheet(); });
   document.addEventListener("keydown", e => { if(e.key === "Escape") closeCardSheet(); });
