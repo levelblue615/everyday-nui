@@ -58,6 +58,15 @@
   a:hover{color:var(--berry)}
   .note{font-size:13.5px;color:var(--muted)}
 
+  ul.books{list-style:none;padding:0;margin:16px 0 0;font-size:14.5px}
+  ul.books li{margin-bottom:8px}
+  ul.books li:last-child{margin-bottom:0}
+  ul.books a{display:inline-block;background:#fbf7fd;border:2px dashed var(--stitch);border-radius:14px;
+    padding:8px 16px;text-decoration:none;font-weight:700;color:var(--berry-dk)}
+  ul.books a:hover{border-color:var(--berry);background:#fbeef2}
+  ul.books a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+  ul.books a::after{content:"（BOOTH）";font-weight:400;font-size:12.5px;color:var(--muted);margin-left:6px}
+
   /* サンプルの観察カード */
   .sample{background:linear-gradient(180deg,#fffef8,#fdf6ef);border-radius:var(--radius);
     padding:26px 22px 22px;position:relative;text-align:center;margin:6px 0 18px}
@@ -126,10 +135,20 @@
 
   <section class="felt">
     <h2><span class="mark">◆</span>仕組み</h2>
-    <p>観察文は、あらかじめ用意された500件以上の文章の中から、その日その名前ぶんだけランダムに選ばれます。文章はすべて運営者が書き下ろしたもので、利用者が追加・編集することはできません。</p>
+    <p>観察文は、あらかじめ用意された500件以上の文章の中から、その日その名前ぶんだけランダムに選ばれます。文章はすべて運営者によるもので、利用者が追加・編集することはできません。</p>
     <p>ログインもメールアドレスの登録も不要です。はじめて開いたときにブラウザごとの<strong>匿名IDが自動で発行され</strong>、それがあなたの観察記録の持ち主になります。名前もメールも登録しないので、こちらから「誰が使っているか」は分かりません。</p>
     <p>そのかわり、<strong>記録は開いたブラウザに紐づきます</strong>。別の端末やブラウザで開くと別人あつかいになり、記録は引き継がれません。ブラウザの履歴・サイトデータを消した場合も同じです。</p>
     <p class="note">くわしくは<a href="privacy.html">プライバシーポリシー</a>と<a href="terms.html">利用規約</a>をご覧ください。</p>
+  </section>
+
+  <section class="felt">
+    <h2><span class="mark">◆</span>観察文について</h2>
+    <p>全ての観察文は、運営者がかわいがっているぬいたちについてSNSでつぶやいてきた一文です。</p>
+    <p>これまでのつぶやきを収録した同人誌（『おえぬいについての本』『おえぬいについての本2』）をデータベース化し、毎日ひとつずつ呼び出せるようにしました。名前の部分だけが、あなたの子の名前に置き換わります。</p>
+    <ul class="books">
+      <li><a href="https://ayura-shop.booth.pm/items/6237630" target="_blank" rel="noopener noreferrer">おえぬいについての本</a></li>
+      <li><a href="https://ayura-shop.booth.pm/items/6883202" target="_blank" rel="noopener noreferrer">おえぬいについての本2</a></li>
+    </ul>
   </section>
 
   <section class="felt">
