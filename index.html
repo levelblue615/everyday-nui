@@ -86,6 +86,20 @@
   .share-btn:hover{border-color:var(--berry);color:var(--berry-dk)}
   .share-btn:active{transform:translateY(2px)}
   .share-btn:focus-visible{outline:2px solid var(--berry);outline-offset:2px}
+  .share-btn:disabled{cursor:default;color:#c7bcd2;border-color:var(--line)}
+  .share-btn.primary{border-color:var(--sage);color:var(--sage)}
+  .share-btn.primary:hover{border-color:var(--berry);color:var(--berry-dk)}
+
+  /* 画像プレビュー。作った画像をそのまま見せて、保存・共有・長押し保存のどれでも選べるようにします。 */
+  .sheet{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;
+    background:rgba(60,42,74,.55)}
+  .sheet.show{display:flex}
+  .sheet-inner{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:18px;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;text-align:center}
+  .sheet-inner h2{margin:2px 0 12px;font-size:15px;font-weight:800;letter-spacing:.04em}
+  .sheet-img{width:100%;height:auto;display:block;border-radius:14px;border:2px solid var(--line)}
+  .sheet-hint{margin:12px 2px 0;font-size:12.5px;color:var(--muted);line-height:1.75}
+  .sheet-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
   @keyframes pop{from{opacity:0;transform:scale(.9) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
   @keyframes sway{0%,100%{transform:rotate(-.5deg)}50%{transform:rotate(.5deg)}}
 
@@ -118,8 +132,14 @@
   .del:hover{background:#fbeef2;color:var(--berry)}
   .empty{text-align:center;color:var(--muted);font-size:14px;padding:18px}
   .panel-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .hist-item{display:flex;justify-content:space-between;gap:12px;padding:9px 4px;border-bottom:1px dashed var(--line);font-size:14px}
+  .hist-item{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+    width:100%;padding:10px 8px;border:0;border-bottom:1px dashed var(--line);border-radius:10px;
+    background:transparent;font-family:var(--font);color:var(--ink);font-size:14px;text-align:left;
+    cursor:pointer;transition:background .15s}
+  .hist-item:hover{background:#faf6fc}
+  .hist-item:focus-visible{outline:2px solid var(--berry);outline-offset:-2px}
   .hist-item:last-child{border-bottom:0}
+  .hist-note{margin:0 0 8px 2px;font-size:12.5px;color:var(--muted)}
   .hist-item .date{color:var(--muted);font-size:12.5px;white-space:nowrap}
   .hist-item .who2{color:var(--berry);font-weight:700}
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
@@ -155,9 +175,8 @@
       <p class="sentence" id="resultText"></p>
       <p class="locked-note" id="lockedNote"></p>
       <div class="share-row">
+        <button id="shareImgBtn" class="share-btn primary">画像を保存</button>
         <button id="shareNativeBtn" class="share-btn" style="display:none">シェアする</button>
-        <button id="shareXBtn" class="share-btn">Xに投稿</button>
-        <button id="shareLineBtn" class="share-btn">LINEで送る</button>
         <button id="shareCopyBtn" class="share-btn">文章をコピー</button>
       </div>
     </div>
@@ -176,6 +195,18 @@
   ・<a href="terms.html" style="color:var(--muted)">利用規約</a>
   ・<a href="privacy.html" style="color:var(--muted)">プライバシーポリシー</a>
   </footer>
+</div>
+
+<!-- 保存がうまくいかない端末むけの控え（画像を長押しで保存してもらいます） -->
+<div class="sheet" id="imgSheet" role="dialog" aria-modal="true" aria-label="観察カードの画像">
+  <div class="sheet-inner">
+    <h2>観察カード</h2>
+    <img id="sheetImg" class="sheet-img" alt="観察カード" />
+    <p class="sheet-hint">画像を長押し（パソコンは右クリック）して保存してください。</p>
+    <div class="sheet-actions">
+      <button id="sheetCloseBtn" class="share-btn">閉じる</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -304,7 +335,7 @@ async function draw(){
 
   const { data: ex } = await sb.from("records")
     .select("text").eq("plush_name",name).eq("day",day).maybeSingle();
-  if(ex){ showResult(name, ex.text, day, true); return; }
+  if(ex){ showResult(name, ex.text, day, "locked"); return; }
 
   const sentence = behaviors[Math.floor(Math.random()*behaviors.length)].text;
   const { error } = await sb.from("records").insert({ plush_name:name, day, text:sentence });
@@ -312,17 +343,22 @@ async function draw(){
     // 同時実行などで既に入っていた場合は取り直して表示
     const { data: ex2 } = await sb.from("records")
       .select("text").eq("plush_name",name).eq("day",day).maybeSingle();
-    if(ex2){ showResult(name, ex2.text, day, true); return; }
+    if(ex2){ showResult(name, ex2.text, day, "locked"); return; }
     toast("保存に失敗しました"); return;
   }
   await loadHistory();
-  showResult(name, sentence, day, false);
+  showResult(name, sentence, day, "new");
 }
 
-function showResult(name, sentence, day, locked){
+/* mode: "new"（引いたばかり） / "locked"（今日はもう観察ずみ） / "past"（観察記録からの再表示） */
+function showResult(name, sentence, day, mode){
+  lastShown = { name, day };
+  cardCanvas = null; cardBlob = null;   // 前回作った画像は破棄（別の子・別の日と混ざらないように）
   renderSentence($("resultText"), sentence, name, "who");
-  $("resultDate").textContent = day.replace(/-/g,".");
-  $("lockedNote").textContent = locked ? "今日はもう観察ずみ。また明日ね。" : "";
+  $("resultDate").textContent = String(day).replace(/-/g,".");
+  $("lockedNote").textContent =
+    mode === "locked" ? "今日はもう観察ずみ。また明日ね。" :
+    mode === "past"   ? "観察記録から表示しています。" : "";
   const r=$("result"); r.classList.add("show");
   const b=r.querySelector(".bubble"); b.style.animation="none"; void b.offsetWidth; b.style.animation="";
   r.scrollIntoView({ behavior:"smooth", block:"center" });
@@ -352,8 +388,211 @@ function shareText(){
   const line = $("resultText").textContent;
   return `${day}\n${line}\n#${SHARE_HASHTAG}`;
 }
-function openShare(url){ window.open(url, "_blank", "noopener,noreferrer"); }
 
+/* ============================================================
+   ---- 観察カードの画像化 ----
+   画面のスクリーンショットを撮るのではなく、共有用のカードを canvas に
+   一から描き直します。こうすることで、
+     ・端末の画面幅や余白に左右されず、いつも同じ 1080×1080 の正方形になる
+     ・スマホでも文字がぼやけない（等倍ではなく高解像度で描いている）
+     ・画面には無い「サイト名」を画像の中に入れられる
+   という利点があります。外部ライブラリは使わないので、CSPの変更も不要です。
+   ============================================================ */
+/* 黄金比（1:1.618）の横長。SNSのタイムラインで切り取られにくい形です。 */
+const CARD_W = 1618, CARD_H = 1000;
+const CARD_FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif';
+const C_INK="#4c4356", C_MUTED="#9a8fa8", C_BERRY="#e5738e", C_SAGE="#8ab59b", C_SURFACE="#fffdf9";
+/* 禁則処理：行頭に置けない文字（句読点・閉じ括弧・小書き仮名・長音）と、行末に置けない文字（開き括弧） */
+const NO_LINE_START = "、。，．・：；！？!?」』）］｝〉》”’ゝゞーぁぃぅぇぉっゃゅょゎヵヶァィゥェォッャュョヮ〜…‥";
+const NO_LINE_END   = "「『（［｛〈《“‘";
+
+let lastShown = { name:"", day:"" };
+let cardCanvas = null, cardBlob = null;
+
+function rrect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+/* 画面に描かれている観察文を、そのまま「文字＋色」の並びとして取り出します。
+   名前の部分（span.who）だけベリー色になるので、画像でも同じ見た目になります。 */
+function resultChars(){
+  const out = [];
+  $("resultText").childNodes.forEach(n => {
+    const hl = (n.nodeType === 1 && n.classList && n.classList.contains("who"));
+    for(const ch of (n.textContent || "")) out.push({ ch, hl });
+  });
+  return out;
+}
+/* 同じ色が続く部分をまとめる（1文字ずつ描くと字間が不自然になるため） */
+function toRuns(chars){
+  const runs = [];
+  chars.forEach(c => {
+    const last = runs[runs.length-1];
+    if(last && last.hl === c.hl) last.t += c.ch; else runs.push({ t:c.ch, hl:c.hl });
+  });
+  return runs;
+}
+/* 日本語なので単語区切りではなく1文字ずつ折り返し、禁則処理だけ入れます。 */
+function wrapChars(ctx, chars, maxW){
+  const lines = []; let line = []; let w = 0;
+  const width = (c) => ctx.measureText(c.ch).width;
+  for(const c of chars){
+    const cw = width(c);
+    if(line.length && w + cw > maxW){
+      if(NO_LINE_START.includes(c.ch)){ line.push(c); w += cw; continue; }  // ぶら下げる
+      const carry = [];
+      while(line.length > 1 && NO_LINE_END.includes(line[line.length-1].ch)) carry.unshift(line.pop());
+      lines.push(line);
+      line = carry.concat([c]);
+      w = line.reduce((a,x)=>a+width(x), 0);
+      continue;
+    }
+    line.push(c); w += cw;
+  }
+  if(line.length) lines.push(line);
+  return lines;
+}
+/* 文が長いときは文字を少しずつ小さくして、カードの中に必ず収めます。 */
+function layoutSentence(ctx, chars, maxW, maxH){
+  for(let size = 68; size >= 30; size -= 2){
+    ctx.font = `700 ${size}px ${CARD_FONT}`;
+    const lines = wrapChars(ctx, chars, maxW);
+    const lineH = Math.round(size * 1.8);
+    if(lines.length * lineH <= maxH) return { lines, size, lineH };
+  }
+  ctx.font = `700 30px ${CARD_FONT}`;
+  return { lines: wrapChars(ctx, chars, maxW), size:30, lineH:54 };
+}
+
+/* Webフォント（M PLUS Rounded 1c）を、実際に描く文字ぶんだけ先に読み込みます。
+   これをしないと、canvas には代替フォントで描かれてしまうことがあります。 */
+async function ensureCardFont(text){
+  if(!document.fonts || !document.fonts.load) return;
+  try{
+    await Promise.all([
+      document.fonts.load(`700 68px "M PLUS Rounded 1c"`, text),
+      document.fonts.load(`800 34px "M PLUS Rounded 1c"`, text),
+      document.fonts.load(`500 30px "M PLUS Rounded 1c"`, text),
+    ]);
+    await document.fonts.ready;
+  }catch(e){ /* 読めなくても代替フォントで描画は続けます */ }
+}
+
+async function drawCard(){
+  const chars = resultChars();
+  const dateText = $("resultDate").textContent;
+  await ensureCardFont(chars.map(c=>c.ch).join("") + dateText + "ぬい観察日記");
+
+  const W = CARD_W, H = CARD_H;
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  const cx = W / 2;
+
+  // 角丸のカードそのものを画像にします。周りの背景は入れません。
+  // 角の外側は透明（PNGなので背景が透ける）になります。
+  ctx.save();
+  rrect(ctx, 0, 0, W, H, 64); ctx.clip();
+  ctx.fillStyle = C_SURFACE; ctx.fillRect(0, 0, W, H);
+
+  // 内側の点線ステッチ
+  ctx.save();
+  ctx.setLineDash([14,12]); ctx.lineWidth = 4; ctx.strokeStyle = C_SAGE;
+  rrect(ctx, 26, 26, W-52, H-52, 42); ctx.stroke();
+  ctx.restore();
+
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
+
+  // 日付スタンプ（点線の丸枠）
+  ctx.font = `500 30px ${CARD_FONT}`;
+  const stampW = ctx.measureText(dateText).width + 76;
+  const stampH = 58, stampY = 76;
+  ctx.save();
+  ctx.setLineDash([9,8]); ctx.lineWidth = 3; ctx.strokeStyle = C_SAGE;
+  rrect(ctx, cx - stampW/2, stampY, stampW, stampH, stampH/2); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = C_SAGE; ctx.textAlign = "center";
+  ctx.fillText(dateText, cx, stampY + stampH/2 + 1);
+
+  // 差出人（下段）
+  const footY = H - 108;
+  ctx.font = `800 32px ${CARD_FONT}`; ctx.fillStyle = C_BERRY;
+  ctx.fillText("ぬい観察日記", cx, footY);
+  ctx.font = `500 23px ${CARD_FONT}`; ctx.fillStyle = C_MUTED;
+  ctx.fillText(shareUrl().replace(/^https?:\/\//,""), cx, footY + 42);
+
+  // 観察文（カードの空きスペースの中央に置く）
+  const top = stampY + stampH + 48, bottom = footY - 56;
+  const box = { w: W - 300, h: bottom - top };
+  const { lines, lineH } = layoutSentence(ctx, chars, box.w, box.h);
+  const blockTop = top + (box.h - lines.length*lineH) / 2;
+  ctx.textAlign = "left";
+  lines.forEach((line, i) => {
+    const runs = toRuns(line);
+    const widths = runs.map(r => ctx.measureText(r.t).width);
+    const total = widths.reduce((a,b)=>a+b, 0);
+    let x = cx - total/2;
+    const y = blockTop + lineH/2 + i*lineH;
+    runs.forEach((r, j) => {
+      ctx.fillStyle = r.hl ? C_BERRY : C_INK;
+      ctx.fillText(r.t, x, y);
+      x += widths[j];
+    });
+  });
+
+  ctx.restore();
+  return cv;
+}
+
+function cardFileName(){
+  return `nui-kansatsu-${lastShown.day || todayStr()}.png`;
+}
+function canvasToBlob(cv){
+  return new Promise(res => cv.toBlob(b => res(b), "image/png"));
+}
+
+/* 「画像を保存」→ 画像を作って、そのまま端末に保存します。
+   保存に対応していない一部のブラウザでは、代わりにプレビューを開いて
+   「長押しで保存」してもらいます。 */
+async function saveCard(){
+  const btn = $("shareImgBtn"), label = btn.textContent;
+  btn.disabled = true; btn.textContent = "作成中…";
+  try{
+    cardCanvas = await drawCard();
+    cardBlob = await canvasToBlob(cardCanvas);
+    if(!cardBlob) throw new Error("no-blob");
+
+    const a = document.createElement("a");
+    if(!("download" in a)) { openCardSheet(); return; }   // 保存に非対応 → 長押し保存へ
+    const url = URL.createObjectURL(cardBlob);
+    a.href = url; a.download = cardFileName();
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast("画像を保存しました");
+  }catch(e){
+    if(cardCanvas){ openCardSheet(); }
+    else { toast("画像を作成できませんでした"); }
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+/* 控え：作った画像をそのまま見せて、長押し（右クリック）で保存してもらいます */
+function openCardSheet(){
+  if(!cardCanvas) return;
+  $("sheetImg").src = cardCanvas.toDataURL("image/png");  // data: は CSP の img-src で許可済み
+  $("imgSheet").classList.add("show");
+}
+function closeCardSheet(){ $("imgSheet").classList.remove("show"); }
+
+/* 「シェアする」（OS標準の共有シート）：文章だけを共有します。
+   画像がほしいときは「画像を保存」を使ってもらう作りにしています。 */
 async function shareNative(){
   try{
     await navigator.share({ text: shareText(), url: shareUrl() });
@@ -361,14 +600,6 @@ async function shareNative(){
     if(e && e.name === "AbortError"){ return; }  // ユーザーが閉じただけ
     toast("シェアできませんでした");
   }
-}
-function shareToX(){
-  openShare("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText())
-    + "&url=" + encodeURIComponent(shareUrl()));
-}
-function shareToLine(){
-  openShare("https://social-plugins.line.me/lineit/share?url=" + encodeURIComponent(shareUrl())
-    + "&text=" + encodeURIComponent(shareText()));
 }
 async function shareCopy(){
   const body = `${shareText()}\n${shareUrl()}`;
@@ -386,12 +617,18 @@ function renderHistory(){
   const el=$("histList");
   if(history.length===0){ el.innerHTML=`<p class="empty">まだ記録はありません。</p>`; return; }
   el.innerHTML="";
+  const note=document.createElement("p"); note.className="hist-note";
+  note.textContent="タップすると大きく表示して、画像にできます。";
+  el.appendChild(note);
   history.forEach(h=>{
-    const row=document.createElement("div"); row.className="hist-item";
+    const row=document.createElement("button"); row.className="hist-item"; row.type="button";
     const left=document.createElement("span");
     renderSentence(left, h.text, h.name, "who2");
     const right=document.createElement("span"); right.className="date"; right.textContent=String(h.date).replace(/-/g,".");
-    row.appendChild(left); row.appendChild(right); el.appendChild(row);
+    row.appendChild(left); row.appendChild(right);
+    // 過去の記録も、今日の結果と同じカードに出します（画像化もそのまま使えます）
+    row.addEventListener("click", () => showResult(h.name, h.text, h.date, "past"));
+    el.appendChild(row);
   });
 }
 
@@ -422,8 +659,7 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<
 function bindEvents(){
   $("drawBtn").addEventListener("click", draw);
   $("nameInput").addEventListener("keydown", e=>{ if(e.key==="Enter") draw(); });
-  $("shareXBtn").addEventListener("click", shareToX);
-  $("shareLineBtn").addEventListener("click", shareToLine);
+  $("shareImgBtn").addEventListener("click", saveCard);
   $("shareCopyBtn").addEventListener("click", shareCopy);
   // OS標準の共有シート（主にスマホ）が使える端末でだけ「シェアする」を出します
   if(navigator.share){
@@ -431,6 +667,10 @@ function bindEvents(){
     b.style.display = "";
     b.addEventListener("click", shareNative);
   }
+  // 保存できなかったときの控え
+  $("sheetCloseBtn").addEventListener("click", closeCardSheet);
+  $("imgSheet").addEventListener("click", e => { if(e.target === $("imgSheet")) closeCardSheet(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeCardSheet(); });
 }
 
 init();
