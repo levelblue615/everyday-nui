@@ -251,6 +251,22 @@ function useIdea(word){
   save(); updateRowButtons(); scheduleRebuild();
 }
 
+/* ---- 書き出しの例 ----
+   はじめの10行に薄く出しておく見本です。候補の中から1日ぶんを選んであります。
+   薄い字はあくまで見本なので、そのままにしておいても画像には出ません。 */
+const SAMPLE = [
+  ["7:00",  "おきる"],
+  ["8:00",  "あさごはん"],
+  ["9:00",  "ぬい朝新聞をチェック"],
+  ["10:00", "しごと（お菓子のざいこかんり）"],
+  ["12:00", "ひるごはん"],
+  ["13:00", "ひるね"],
+  ["15:00", "おやつ"],
+  ["16:00", "近所の公園をさんぽ"],
+  ["19:00", "よるごはん"],
+  ["23:00", "ねる"]
+];
+
 /* ---- 表をつくる ---- */
 function addRow(focus){
   if(rowCount >= ROWS_MAX) return false;
@@ -261,13 +277,13 @@ function addRow(focus){
   const t = document.createElement("input");
   t.type = "text"; t.className = "cell time"; t.id = "t"+i;
   t.maxLength = 8; t.autocomplete = "off"; t.inputMode = "numeric";
-  t.placeholder = i === 0 ? "7:00" : "";
+  t.placeholder = SAMPLE[i] ? SAMPLE[i][0] : "";
   t.setAttribute("aria-label", (i+1) + "行目の時刻");
 
   const a = document.createElement("input");
   a.type = "text"; a.className = "cell act"; a.id = "a"+i;
   a.maxLength = 30; a.autocomplete = "off";
-  a.placeholder = i === 0 ? "おきる" : "";
+  a.placeholder = SAMPLE[i] ? SAMPLE[i][1] : "";
   a.setAttribute("aria-label", (i+1) + "行目のしていること");
 
   row.appendChild(t); row.appendChild(a); $("table").appendChild(row);
@@ -389,7 +405,13 @@ function drawLines(ctx, lines, size, cx, cy){
 
 function renderCanvas(){
   const data = collect();
-  const rows = data.rows.filter(r => r.time || r.act);
+  /* 何か書いてある行だけを出します。時刻が空のままなら、薄く出ていた見本の時刻を使います。 */
+  const rows = data.rows
+    .map((r, i) => ({
+      time: r.time || (SAMPLE[i] ? SAMPLE[i][0] : ""),
+      act:  r.act
+    }))
+    .filter((r, i) => data.rows[i].time || data.rows[i].act);
   if(rows.length === 0) return null;
 
   const title = data.title || "とあるぬいの1日";
