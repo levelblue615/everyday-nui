@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- このページは外部と通信しません（フォント配信を除く）。画像はブラウザの中だけで作られます。 -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+  font-src https://fonts.gstatic.com;
+  img-src 'self' data: blob:;
+  base-uri 'none';
+  form-action 'none';
+" />
+<title>ぬいスケジュール｜ぬい観察日記</title>
+<meta name="description" content="ぬいちゃんのスケジュール表をつくって、画像として保存できます。" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#efeaf6; --bg-2:#f6f1f9; --surface:#fffdf9; --ink:#4c4356; --muted:#9a8fa8;
+    --berry:#e5738e; --berry-dk:#cf5c78; --sage:#8ab59b; --stitch:#d9c2e4;
+    --line:#e7dced; --rule:#a695b6; --rule-soft:#c2b1d1; --radius:22px; --shadow:0 10px 30px rgba(90,60,110,.10);
+    --font:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--font); color:var(--ink); line-height:1.7; -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #fbeef4 0%, transparent 55%),
+      radial-gradient(1000px 700px at 110% 10%, #e9f3ec 0%, transparent 50%),
+      linear-gradient(180deg,var(--bg) 0%,var(--bg-2) 100%);
+  }
+  .wrap{max-width:620px;margin:0 auto;padding:34px 18px 80px}
+  header{text-align:center;margin-bottom:24px}
+  .title{font-size:30px;font-weight:800;letter-spacing:.06em;margin:0}
+  .title .dot{color:var(--berry)}
+  .subtitle{margin:6px 0 0;color:var(--muted);font-size:14px;letter-spacing:.04em}
+
+  .felt{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);position:relative;padding:24px 20px}
+  .felt::after{content:"";position:absolute;inset:7px;border:2px dashed var(--stitch);
+    border-radius:calc(var(--radius) - 9px);pointer-events:none}
+  .felt > *{position:relative}
+
+  .sheet-title{width:100%;border:2px solid var(--line);background:#fff;border-radius:16px;
+    padding:12px 14px;font-family:var(--font);font-weight:700;font-size:17px;color:var(--ink);
+    outline:none;transition:border-color .15s;text-align:center}
+  .sheet-title:focus{border-color:var(--berry)}
+  .sheet-title::placeholder{color:#c7bcd2;font-weight:400}
+
+  /* 表本体 */
+  .table{margin-top:20px;border-top:3px solid var(--rule)}
+  .rowline{display:grid;grid-template-columns:88px 1fr;align-items:stretch;
+    border-bottom:2px dotted var(--rule-soft);position:relative}
+  .rowline:last-child{border-bottom:0}
+  .rowline::before{content:"";position:absolute;left:88px;top:0;bottom:0;width:2px;background:var(--rule)}
+  .cell{border:0;background:transparent;font-family:var(--font);color:var(--ink);
+    outline:none;padding:12px 10px;min-width:0;width:100%;font-size:15.5px}
+  .cell:focus{background:#fbf5fd}
+  .cell::placeholder{color:#d7cee0}
+  .cell.time{text-align:center;font-weight:700;letter-spacing:.02em}
+  .cell.act{text-align:center}
+  .rowline:focus-within{background:#fdf8fe}
+
+  /* 行をふやす／やめるボタン。表の縦線の真下に来るよう、左の余白を時刻の列幅に合わせています。 */
+  .rowctl{display:flex;gap:7px;align-items:center;margin-top:10px;padding-left:73px}
+  .rowbtn{width:32px;height:32px;padding:0;flex:none;border:2px dashed var(--stitch);background:#fff;
+    color:var(--berry-dk);font-family:var(--font);font-weight:800;font-size:17px;line-height:1;cursor:pointer;
+    border-radius:999px;display:flex;align-items:center;justify-content:center;
+    transition:border-color .15s,background .15s,transform .06s}
+  .rowbtn:hover{border-color:var(--berry);background:#fbeef2}
+  .rowbtn:active{transform:translateY(2px)}
+  .rowbtn:disabled{color:#dcd3e4;border-color:var(--line);background:#fff;cursor:default;transform:none}
+  .rowbtn:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+  .rowcount{margin-left:auto;font-size:12px;font-weight:700;color:var(--sage);
+    background:#eef6f0;border-radius:999px;padding:3px 11px}
+
+  .ideas{margin-top:18px;border-top:1px dashed var(--line);padding-top:14px}
+  .ideas>summary{list-style:none;cursor:pointer;user-select:none;display:flex;align-items:center;
+    justify-content:space-between;gap:10px;font-weight:700;font-size:14px;color:var(--berry-dk)}
+  .ideas>summary::-webkit-details-marker{display:none}
+  .ideas>summary::before{content:"＋";margin-right:7px;color:var(--sage);font-weight:800}
+  .ideas[open]>summary::before{content:"−"}
+  .ideas>summary .cue{font-size:11.5px;font-weight:700;color:var(--sage);background:#eef6f0;
+    border-radius:999px;padding:3px 11px;white-space:nowrap}
+  .ideas>summary:focus-visible{outline:3px solid var(--sage);outline-offset:3px;border-radius:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+  .chip{border:2px dashed var(--stitch);background:#fbf7fd;color:var(--ink);cursor:pointer;
+    font-family:var(--font);font-weight:500;font-size:13.5px;padding:7px 13px;border-radius:999px;
+    transition:border-color .15s,background .15s,transform .06s}
+  .chip:hover{border-color:var(--berry);background:#fbeef2;color:var(--berry-dk)}
+  .chip:active{transform:translateY(2px)}
+  .chip:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+
+  .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:22px}
+  .btn{border:none;cursor:pointer;font-family:var(--font);font-weight:800;font-size:15px;letter-spacing:.06em;
+    padding:13px 22px;border-radius:16px;background:var(--berry);color:#fff;box-shadow:0 5px 0 var(--berry-dk);
+    transition:transform .06s,box-shadow .06s,background .15s}
+  .btn:hover{background:#ec7f98}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--berry-dk)}
+  .btn:disabled{background:#d8cee2;box-shadow:0 5px 0 #c3b6d0;cursor:default}
+  .btn:focus-visible{outline:3px solid var(--sage);outline-offset:3px}
+  .btn.ghost{background:#fff;color:var(--muted);border:2px solid var(--line);box-shadow:none;font-size:13.5px;
+    font-weight:700;padding:10px 16px;border-radius:999px}
+  .btn.ghost:hover{border-color:var(--berry);color:var(--berry-dk);background:#fff}
+  .btn.ghost:active{transform:translateY(2px)}
+  .btn.ghost:disabled{background:#fff;color:#d7cee0;border-color:var(--line);cursor:default;transform:none}
+  .btn.ghost:disabled:hover{border-color:var(--line);color:#d7cee0}
+
+  .preview{margin-top:24px;display:none}
+  .preview.show{display:block}
+  .preview img{width:100%;height:auto;display:block;border-radius:16px;box-shadow:var(--shadow)}
+  .preview .cap{text-align:center;font-size:12.5px;color:var(--muted);margin:10px 0 0}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+    padding:11px 20px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .25s;
+    z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:26px}
+  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
+    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
+  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="title">ぬいスケジュール<span class="dot">.</span></h1>
+    <p class="subtitle">ぬいちゃんのスケジュールを作成できます。</p>
+  </header>
+
+  <section class="felt">
+    <input id="sheetTitle" class="sheet-title" type="text" maxlength="24" autocomplete="off"
+           aria-label="スケジュールの見出し" placeholder="とあるぬいの1日" />
+
+    <div class="table" id="table"></div>
+
+    <div class="rowctl">
+      <button id="addRowBtn" class="rowbtn" title="行をふやす" aria-label="行をふやす">＋</button>
+      <button id="delRowBtn" class="rowbtn" style="display:none" title="この行をやめる" aria-label="いちばん下の行をやめる">−</button>
+      <span class="rowcount" id="rowCount">10行</span>
+    </div>
+
+    <details class="ideas" id="ideas">
+      <summary>スケジュール候補<span class="cue">タップで入ります</span></summary>
+      <div class="chips" id="chips"></div>
+    </details>
+
+    <div class="actions">
+      <button id="makeBtn" class="btn">画像をつくる</button>
+    </div>
+    <div class="actions">
+      <button id="clearBtn" class="btn ghost">ぜんぶ消す</button>
+    </div>
+  </section>
+
+  <section id="preview" class="preview">
+    <img id="previewImg" alt="つくったスケジュール表" />
+    <p class="cap">長押しで保存もできます。</p>
+    <div class="actions">
+      <button id="saveBtn" class="btn">画像を保存</button>
+      <button id="shareBtn" class="btn ghost" style="display:none">画像をシェア</button>
+    </div>
+  </section>
+
+  <nav class="links">
+    <a href="index.html">ホーム</a>
+    <a href="about.html">このサイトについて</a>
+    <a href="terms.html">利用規約</a>
+    <a href="privacy.html">プライバシーポリシー</a>
+  </nav>
+
+  <footer>ぬい観察日記</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ぬいスケジュール
+   ・入力内容はこのブラウザの中だけに保存されます（サーバーには送りません）。
+   ・画像は canvas に描き起こしています。画面の切り取りではないので、
+     端末の幅やスクロール位置に関係なく同じ絵が出ます。
+   ============================================================ */
+const ROWS_DEFAULT = 10;   // はじめに出る行数
+const ROWS_MAX = 20;       // 「行をふやす」で増やせる上限
+let rowCount = 0;
+const STORE_KEY = "nui-schedule-v1";
+const FONT_FAMILY = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif';
+const SITE_URL = "https://levelblue615.github.io/everyday-nui/";
+
+const $ = (id) => document.getElementById(id);
+let toastTimer;
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+/* ---- アイデアの候補 ----
+   埋めるきっかけになるよう、朝から夜までの順に並べています。
+   ここを書き換えれば候補を差し替えられます。 */
+const IDEAS = [
+  "おきる", "あさごはん", "ぬい朝新聞をチェック", "おやつ", "ひるごはん",
+  "ひるね", "たいきん",
+  "しごと（りもーとお菓子定例会に出席）",
+  "しごと（お菓子のざいこかんり）",
+  "しごと（たべたいお菓子をリストアップ）",
+  "近所の公園をさんぽ", "駄菓子屋さんへおつかい", "ぬいジムでうんどう（すこし）",
+  "ぬいぐるみのみんなとおしゃべり", "おふろ", "ベッドのじゅんび", "あしたのじゅんび",
+  "ねる", "ねむい", "にどね", "ぬいぬい新聞よむ", "あさとひるごはん",
+  "ねむいけどねないじかん", "となりの家の犬とおしゃべりする", "おやつたべる",
+  "かおなじみの犬とさんぽする", "いきつけのカフェいく", "きたく", "よるごはん",
+  "おきにいりのえほんよむ", "今日さいごのおやつたべる", "よるのさんぽする（きをつける）",
+  "ねむれない猫たちとおしゃべり", "こっそりおやつたべる", "はみがき"
+];
+
+let lastActId = null;   // さいごに触っていた「していること」の欄
+
+function buildChips(){
+  const box = $("chips");
+  IDEAS.forEach(word => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = word;
+    b.addEventListener("click", () => useIdea(word));
+    box.appendChild(b);
+  });
+}
+
+/* さいごに触っていた欄が空ならそこへ。無ければいちばん上の空いている行へ入れます。 */
+function useIdea(word){
+  let target = null;
+  if(lastActId && $(lastActId) && !$(lastActId).value.trim()) target = $(lastActId);
+  if(!target){
+    for(let i=0;i<rowCount;i++){
+      if(!$("a"+i).value.trim()){ target = $("a"+i); break; }
+    }
+  }
+  if(!target){
+    if(!addRow(false)){ toast("空いている行がありません"); return; }
+    target = $("a"+(rowCount-1));
+  }
+  target.value = word;
+  lastActId = target.id;
+  save(); updateRowButtons(); scheduleRebuild();
+}
+
+/* ---- 表をつくる ---- */
+function addRow(focus){
+  if(rowCount >= ROWS_MAX) return false;
+  const i = rowCount++;
+  const row = document.createElement("div");
+  row.className = "rowline"; row.id = "r"+i;
+
+  const t = document.createElement("input");
+  t.type = "text"; t.className = "cell time"; t.id = "t"+i;
+  t.maxLength = 8; t.autocomplete = "off"; t.inputMode = "numeric";
+  t.placeholder = i === 0 ? "7:00" : "";
+  t.setAttribute("aria-label", (i+1) + "行目の時刻");
+
+  const a = document.createElement("input");
+  a.type = "text"; a.className = "cell act"; a.id = "a"+i;
+  a.maxLength = 30; a.autocomplete = "off";
+  a.placeholder = i === 0 ? "おきる" : "";
+  a.setAttribute("aria-label", (i+1) + "行目のしていること");
+
+  row.appendChild(t); row.appendChild(a); $("table").appendChild(row);
+  bindRow(i);
+  if(focus) t.focus();
+  return true;
+}
+
+/* いちばん下の行が空のときだけ、その行を取り消せます。 */
+function removeRow(){
+  if(rowCount <= ROWS_DEFAULT) return false;
+  const i = rowCount - 1;
+  if($("t"+i).value.trim() || $("a"+i).value.trim()) return false;
+  $("r"+i).remove();
+  rowCount--;
+  return true;
+}
+
+function updateRowButtons(){
+  $("addRowBtn").disabled = rowCount >= ROWS_MAX;
+  const last = rowCount - 1;
+  const lastEmpty = rowCount > ROWS_DEFAULT &&
+    !$("t"+last).value.trim() && !$("a"+last).value.trim();
+  $("delRowBtn").style.display = lastEmpty ? "" : "none";
+  $("rowCount").textContent = rowCount + "行";
+}
+
+/* 「700」「7」のような打ち方を「7:00」に整えます。それ以外はそのまま残します。 */
+function tidyTime(v){
+  const s = String(v).trim().replace(/[０-９]/g, c => "0123456789"["０１２３４５６７８９".indexOf(c)])
+                            .replace(/[：.．]/g, ":");
+  if(/^\d{1,2}$/.test(s)) return s + ":00";
+  if(/^\d{3,4}$/.test(s)) return s.slice(0, s.length-2) + ":" + s.slice(-2);
+  const m = s.match(/^(\d{1,2}):(\d{1,2})$/);
+  if(m) return m[1] + ":" + m[2].padStart(2,"0");
+  return String(v).trim();
+}
+
+/* ---- 保存と読み込み（このブラウザの中だけ） ---- */
+function collect(){
+  const rows = [];
+  for(let i=0;i<rowCount;i++){
+    rows.push({ time: $("t"+i).value.trim(), act: $("a"+i).value.trim() });
+  }
+  return { title: $("sheetTitle").value.trim(), rows };
+}
+function save(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(collect())); }
+  catch(e){ /* プライベートモード等で保存できない場合は黙って続けます */ }
+}
+function load(){
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); }catch(e){ d = null; }
+  if(!d || !Array.isArray(d.rows)) return;
+  $("sheetTitle").value = d.title || "";
+  const saved = d.rows.slice(0, ROWS_MAX);
+  while(rowCount < saved.length) addRow(false);
+  saved.forEach((r, i) => {
+    $("t"+i).value = (r && r.time) || "";
+    $("a"+i).value = (r && r.act)  || "";
+  });
+}
+function clearAll(){
+  if(!confirm("書いた内容をぜんぶ消します。よろしいですか？")) return;
+  $("sheetTitle").value = "";
+  for(let i=0;i<rowCount;i++){ $("t"+i).value=""; $("a"+i).value=""; }
+  while(rowCount > ROWS_DEFAULT) removeRow();
+  updateRowButtons();
+  save();
+  $("preview").classList.remove("show");
+  cachedBlob = null;
+  toast("消しました");
+}
+
+/* ============================================================
+   画像を描く
+   ============================================================ */
+const W = 1200, MARGIN = 44, PAD = 58;
+const ROW_H = 98, TABLE_TOP_OFFSET = 132, TIME_COL = 232;
+const C_INK = "#4c4356", C_MUTED = "#9a8fa8", C_BERRY = "#e5738e",
+      C_RULE = "#a695b6", C_RULE_SOFT = "#c2b1d1",
+      C_STITCH = "#d9c2e4", C_SURFACE = "#fffdf9";
+
+function rrect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+/* 1行に収まる字の大きさを探します。どうしても入らなければ2行に折り返します。 */
+function fitText(ctx, text, maxW, weight, maxSize, minSize){
+  for(let s = maxSize; s >= minSize; s--){
+    ctx.font = `${weight} ${s}px ${FONT_FAMILY}`;
+    if(ctx.measureText(text).width <= maxW) return { size:s, lines:[text] };
+  }
+  ctx.font = `${weight} ${minSize}px ${FONT_FAMILY}`;
+  const lines = [];
+  let cur = "";
+  for(const ch of text){
+    if(ctx.measureText(cur + ch).width > maxW && cur){
+      lines.push(cur); cur = ch;
+      if(lines.length === 2) break;
+    } else { cur += ch; }
+  }
+  if(lines.length < 2 && cur) lines.push(cur);
+  return { size:minSize, lines:lines.slice(0,2) };
+}
+
+function drawLines(ctx, lines, size, cx, cy){
+  const lh = size * 1.35;
+  const top = cy - ((lines.length - 1) * lh) / 2;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  lines.forEach((ln, i) => ctx.fillText(ln, cx, top + i*lh));
+}
+
+function renderCanvas(){
+  const data = collect();
+  const rows = data.rows.filter(r => r.time || r.act);
+  if(rows.length === 0) return null;
+
+  const title = data.title || "とあるぬいの1日";
+
+  const cardX = MARGIN, cardY = MARGIN;
+  const contentX = cardX + PAD, contentR = W - cardX - PAD;
+  const dividerX = contentX + TIME_COL;
+  const tableTop = cardY + TABLE_TOP_OFFSET;
+  const tableBottom = tableTop + rows.length * ROW_H;
+  const footY = tableBottom + 74;
+  const H = footY + 84 + MARGIN;
+
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+
+  /* 背景（サイトと同じうすむらさき） */
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#efeaf6"); bg.addColorStop(1, "#f6f1f9");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const g1 = ctx.createRadialGradient(W*0.15, 0, 0, W*0.15, 0, W*0.9);
+  g1.addColorStop(0, "rgba(251,238,244,.95)"); g1.addColorStop(1, "rgba(251,238,244,0)");
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+  const g2 = ctx.createRadialGradient(W*1.05, H*0.08, 0, W*1.05, H*0.08, W*0.8);
+  g2.addColorStop(0, "rgba(233,243,236,.9)"); g2.addColorStop(1, "rgba(233,243,236,0)");
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+
+  /* フェルトの台紙 */
+  const cardW = W - MARGIN*2, cardH = H - MARGIN*2;
+  ctx.save();
+  ctx.shadowColor = "rgba(90,60,110,.16)"; ctx.shadowBlur = 34; ctx.shadowOffsetY = 12;
+  ctx.fillStyle = C_SURFACE; rrect(ctx, cardX, cardY, cardW, cardH, 40); ctx.fill();
+  ctx.restore();
+
+  /* ステッチ枠 */
+  ctx.save();
+  ctx.setLineDash([10, 9]); ctx.lineWidth = 3; ctx.strokeStyle = C_STITCH;
+  rrect(ctx, cardX+16, cardY+16, cardW-32, cardH-32, 26); ctx.stroke();
+  ctx.restore();
+
+  /* 見出し（右側の列の上に置きます） */
+  const actCX = (dividerX + contentR) / 2;
+  const titleFit = fitText(ctx, title, contentR - dividerX - 30, "800", 42, 28);
+  ctx.fillStyle = C_INK;
+  drawLines(ctx, titleFit.lines, titleFit.size, actCX, cardY + 78);
+
+  /* 縦の区切り線（見出しの高さから表の下まで） */
+  ctx.strokeStyle = C_RULE; ctx.lineWidth = 4; ctx.lineCap = "butt";
+  ctx.beginPath();
+  ctx.moveTo(dividerX, cardY + 44); ctx.lineTo(dividerX, tableBottom);
+  ctx.stroke();
+
+  /* 表の上の太線（下は引きません） */
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(contentX, tableTop); ctx.lineTo(contentR, tableTop); ctx.stroke();
+
+  /* 各行 */
+  rows.forEach((r, i) => {
+    const top = tableTop + i * ROW_H, cy = top + ROW_H/2;
+
+    if(i > 0){
+      ctx.save();
+      ctx.setLineDash([3, 9]); ctx.lineCap = "round"; ctx.lineWidth = 3.5; ctx.strokeStyle = C_RULE_SOFT;
+      ctx.beginPath(); ctx.moveTo(contentX, top); ctx.lineTo(contentR, top); ctx.stroke();
+      ctx.restore();
+    }
+
+    if(r.time){
+      const f = fitText(ctx, r.time, TIME_COL - 44, "700", 36, 22);
+      ctx.fillStyle = C_INK;
+      drawLines(ctx, f.lines, f.size, contentX + TIME_COL/2 - 8, cy);
+    }
+    if(r.act){
+      const f = fitText(ctx, r.act, contentR - dividerX - 56, "500", 34, 21);
+      ctx.fillStyle = C_INK;
+      drawLines(ctx, f.lines, f.size, actCX, cy);
+    }
+  });
+
+  /* 差出人 */
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `800 30px ${FONT_FAMILY}`; ctx.fillStyle = C_BERRY;
+  ctx.fillText("ぬい観察日記", W/2, footY);
+  ctx.font = `500 22px ${FONT_FAMILY}`; ctx.fillStyle = C_MUTED;
+  ctx.fillText(SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, ""), W/2, footY + 38);
+
+  return cv;
+}
+
+/* ---- 画像のつくり置き ----
+   共有シートは「押した直後」でないと拒否されることがあるので、
+   入力が落ち着いたタイミングで裏側で1枚つくっておきます。 */
+let cachedBlob = null, cachedUrl = null, buildTimer = null;
+
+function canvasToBlob(cv){
+  return new Promise((resolve) => cv.toBlob(resolve, "image/png"));
+}
+
+async function buildImage(showPreview){
+  const cv = renderCanvas();
+  if(!cv){
+    if(showPreview) toast("1行めだけでも書いてみてね");
+    return null;
+  }
+  const blob = await canvasToBlob(cv);
+  if(!blob) return null;
+  if(cachedUrl) URL.revokeObjectURL(cachedUrl);
+  cachedBlob = blob;
+  cachedUrl = URL.createObjectURL(blob);
+  $("previewImg").src = cachedUrl;
+  if(showPreview){
+    const p = $("preview");
+    p.classList.add("show");
+    p.scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+  return blob;
+}
+
+function scheduleRebuild(){
+  clearTimeout(buildTimer);
+  buildTimer = setTimeout(() => {
+    if($("preview").classList.contains("show")) buildImage(false);
+  }, 500);
+}
+
+function fileName(){
+  const t = ($("sheetTitle").value.trim() || "ぬいスケジュール").replace(/[\\\/:*?"<>|]/g, "");
+  return t + ".png";
+}
+
+async function saveImage(){
+  const blob = cachedBlob || await buildImage(false);
+  if(!blob){ toast("1行めだけでも書いてみてね"); return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fileName();
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast("画像を保存しました");
+}
+
+async function shareImage(){
+  if(!cachedBlob){ toast("もういちど押してみてね"); await buildImage(false); return; }
+  const file = new File([cachedBlob], fileName(), { type:"image/png" });
+  try{
+    await navigator.share({ files:[file] });
+  }catch(e){
+    if(e && e.name === "AbortError") return;
+    toast("シェアできませんでした");
+  }
+}
+
+/* ---- 起動 ---- */
+function bindRow(i){
+  const t = $("t"+i), a = $("a"+i);
+  const changed = () => { save(); updateRowButtons(); scheduleRebuild(); };
+  t.addEventListener("input", changed);
+  t.addEventListener("blur", () => { t.value = tidyTime(t.value); changed(); });
+  a.addEventListener("input", changed);
+  a.addEventListener("focus", () => { lastActId = a.id; });
+  // Enterで次の欄へ。いちばん下でEnterを押したら、行が増えてそのまま書き続けられます。
+  t.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); a.focus(); } });
+  a.addEventListener("keydown", e => {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    const n = $("t"+(i+1));
+    if(n){ n.focus(); return; }
+    if(addRow(true)) updateRowButtons(); else a.blur();
+  });
+}
+
+function bindEvents(){
+  $("sheetTitle").addEventListener("input", () => { save(); scheduleRebuild(); });
+  $("addRowBtn").addEventListener("click", () => {
+    if(addRow(true)){ save(); updateRowButtons(); }
+    else toast("行は" + ROWS_MAX + "行までです");
+  });
+  $("delRowBtn").addEventListener("click", () => {
+    if(removeRow()){ save(); updateRowButtons(); scheduleRebuild(); }
+  });
+  $("makeBtn").addEventListener("click", () => buildImage(true));
+  $("saveBtn").addEventListener("click", saveImage);
+  $("clearBtn").addEventListener("click", clearAll);
+
+  const canShareFiles = !!(navigator.canShare && navigator.share &&
+    navigator.canShare({ files:[new File([new Blob()], "a.png", { type:"image/png" })] }));
+  if(canShareFiles){
+    const b = $("shareBtn");
+    b.style.display = "";
+    b.addEventListener("click", shareImage);
+  }
+}
+
+async function init(){
+  while(rowCount < ROWS_DEFAULT) addRow(false);
+  buildChips();
+  load();
+  bindEvents();
+  updateRowButtons();
+  // 画像の字が別のフォントで描かれないよう、読み込みを待ちます
+  if(document.fonts && document.fonts.load){
+    try{
+      await Promise.all([
+        document.fonts.load('500 34px "M PLUS Rounded 1c"'),
+        document.fonts.load('700 36px "M PLUS Rounded 1c"'),
+        document.fonts.load('800 42px "M PLUS Rounded 1c"'),
+      ]);
+      await document.fonts.ready;
+    }catch(e){ /* フォントが来なくても代替フォントで描けます */ }
+  }
+}
+
+init();
+</script>
+</body>
+</html>
