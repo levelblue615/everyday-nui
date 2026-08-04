@@ -495,16 +495,28 @@ async function drawCard(){
   const ctx = cv.getContext("2d");
   const cx = W / 2;
 
-  // 角丸のカードそのものを画像にします。周りの背景は入れません。
-  // 角の外側は透明（PNGなので背景が透ける）になります。
+  // 背景：アプリと同じ、薄紫にピンクと若葉がにじむグラデーション
+  const base = ctx.createLinearGradient(0,0,0,H);
+  base.addColorStop(0,"#efeaf6"); base.addColorStop(1,"#f6f1f9");
+  ctx.fillStyle = base; ctx.fillRect(0,0,W,H);
+  const pink = ctx.createRadialGradient(W*0.12,-H*0.15,0, W*0.12,-H*0.15,W*0.7);
+  pink.addColorStop(0,"rgba(251,238,244,1)"); pink.addColorStop(1,"rgba(251,238,244,0)");
+  ctx.fillStyle = pink; ctx.fillRect(0,0,W,H);
+  const green = ctx.createRadialGradient(W*1.02,H*0.1,0, W*1.02,H*0.1,W*0.62);
+  green.addColorStop(0,"rgba(233,243,236,1)"); green.addColorStop(1,"rgba(233,243,236,0)");
+  ctx.fillStyle = green; ctx.fillRect(0,0,W,H);
+
+  // フェルトのカード
+  const M = 64, CW = W - M*2, CH = H - M*2;
   ctx.save();
-  rrect(ctx, 0, 0, W, H, 64); ctx.clip();
-  ctx.fillStyle = C_SURFACE; ctx.fillRect(0, 0, W, H);
+  ctx.shadowColor = "rgba(90,60,110,.16)"; ctx.shadowBlur = 40; ctx.shadowOffsetY = 14;
+  ctx.fillStyle = C_SURFACE; rrect(ctx, M, M, CW, CH, 56); ctx.fill();
+  ctx.restore();
 
   // 内側の点線ステッチ
   ctx.save();
   ctx.setLineDash([14,12]); ctx.lineWidth = 4; ctx.strokeStyle = C_SAGE;
-  rrect(ctx, 26, 26, W-52, H-52, 42); ctx.stroke();
+  rrect(ctx, M+20, M+20, CW-40, CH-40, 40); ctx.stroke();
   ctx.restore();
 
   ctx.textAlign = "left"; ctx.textBaseline = "middle";
@@ -512,7 +524,7 @@ async function drawCard(){
   // 日付スタンプ（点線の丸枠）
   ctx.font = `500 30px ${CARD_FONT}`;
   const stampW = ctx.measureText(dateText).width + 76;
-  const stampH = 58, stampY = 76;
+  const stampH = 58, stampY = M + 72;
   ctx.save();
   ctx.setLineDash([9,8]); ctx.lineWidth = 3; ctx.strokeStyle = C_SAGE;
   rrect(ctx, cx - stampW/2, stampY, stampW, stampH, stampH/2); ctx.stroke();
@@ -521,7 +533,7 @@ async function drawCard(){
   ctx.fillText(dateText, cx, stampY + stampH/2 + 1);
 
   // 差出人（下段）
-  const footY = H - 108;
+  const footY = M + CH - 96;
   ctx.font = `800 32px ${CARD_FONT}`; ctx.fillStyle = C_BERRY;
   ctx.fillText("ぬい観察日記", cx, footY);
   ctx.font = `500 23px ${CARD_FONT}`; ctx.fillStyle = C_MUTED;
@@ -529,7 +541,7 @@ async function drawCard(){
 
   // 観察文（カードの空きスペースの中央に置く）
   const top = stampY + stampH + 48, bottom = footY - 56;
-  const box = { w: W - 300, h: bottom - top };
+  const box = { w: CW - 300, h: bottom - top };
   const { lines, lineH } = layoutSentence(ctx, chars, box.w, box.h);
   const blockTop = top + (box.h - lines.length*lineH) / 2;
   ctx.textAlign = "left";
@@ -546,7 +558,6 @@ async function drawCard(){
     });
   });
 
-  ctx.restore();
   return cv;
 }
 
