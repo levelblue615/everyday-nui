@@ -13,8 +13,8 @@
   base-uri 'none';
   form-action 'none';
 " />
-<title>ぬいスケジュール｜ぬい観察日記</title>
-<meta name="description" content="ぬいちゃんのスケジュール表をつくって、画像として保存できます。" />
+<title>ぬいスケジュール｜ぬいについてのサイト</title>
+<meta name="description" content="ぬいの1日の予定表をつくって、そのまま画像として保存できます。書いた内容はブラウザの中だけに残り、何度でもつくり直せます。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -121,19 +121,21 @@
     z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.2)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:26px}
-  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
-    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
-  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
-  nav.links a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
-  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+  /* ---- フッター。index.html と同じ、控えめな下線リンクにそろえています。 ---- */
+  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
+  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
+    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
+  nav.links a:hover{color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
+  footer{text-align:center;margin-top:34px}
+  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1 class="title">ぬいスケジュール<span class="dot">.</span></h1>
-    <p class="subtitle">ぬいちゃんのスケジュールを作成できます。</p>
+    <p class="subtitle">ぬいのスケジュールを作成できます。</p>
   </header>
 
   <section class="felt">
@@ -170,14 +172,16 @@
     </div>
   </section>
 
-  <nav class="links">
-    <a href="index.html">ホーム</a>
-    <a href="about.html">このサイトについて</a>
-    <a href="terms.html">利用規約</a>
-    <a href="privacy.html">プライバシーポリシー</a>
-  </nav>
-
-  <footer>ぬい観察日記</footer>
+  <footer>
+    <nav class="links">
+      <a href="index.html">ホーム</a>
+      <a href="about.html">このサイトについて</a>
+      <a href="news.html">お知らせ</a>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+    <p class="sitename">ぬいについてのサイト</p>
+  </footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -494,7 +498,7 @@ function renderCanvas(){
   /* 差出人 */
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.font = `800 30px ${FONT_FAMILY}`; ctx.fillStyle = C_BERRY;
-  ctx.fillText("ぬい観察日記", W/2, footY);
+  ctx.fillText("ぬいスケジュール", W/2, footY);
   ctx.font = `500 22px ${FONT_FAMILY}`; ctx.fillStyle = C_MUTED;
   ctx.fillText(SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, ""), W/2, footY + 38);
 

@@ -11,7 +11,7 @@
   base-uri 'none';
   form-action 'none';
 " />
-<title>プライバシーポリシー｜ぬい観察日記</title>
+<title>プライバシーポリシー｜ぬいについてのサイト</title>
 <meta name="description" content="ぬい観察日記が取得する情報と、その取り扱いについて説明します。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -71,30 +71,34 @@
   .svc .pp{font-size:12.5px;color:var(--muted);margin:0}
 
   .meta{font-size:13px;color:var(--muted);margin-top:22px;text-align:right}
-  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:24px}
-  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
-    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
-  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
-  nav.links a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
-  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+  /* ---- フッター。index.html と同じ、控えめな下線リンクにそろえています。 ---- */
+  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
+  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
+    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
+  nav.links a:hover{color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
+  footer{text-align:center;margin-top:34px}
+  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1 class="title">プライバシーポリシー</h1>
-    <p class="subtitle">ぬい観察日記<span class="dot">.</span></p>
+    <p class="subtitle">ぬいについてのサイト<span class="dot">.</span></p>
   </header>
 
   <div class="felt">
-    <p class="lead">アユラ（@ayura_plus、以下「運営者」）は、ウェブサービス「ぬい観察日記」（以下「本サービス」）における利用者の情報の取り扱いについて、次のとおり定めます。</p>
+    <p class="lead">アユラ（@ayura_plus、以下「運営者」）は、ウェブサイト「ぬいについてのサイト」（以下「本サービス」）における利用者の情報の取り扱いについて、次のとおり定めます。本サービスには「ぬい観察日記」（以下「観察日記」）と「ぬいスケジュール」（以下「スケジュール」）があり、情報の扱いが異なります。</p>
 
     <hr class="divider" />
 
     <article>
       <h2>1. はじめに（要約）</h2>
       <div class="callout">
-        本サービスは<strong>アカウント登録がなく、氏名・メールアドレス・電話番号などを一切取得しません</strong>。保存するのは、自動で発行される匿名の識別子と、あなたが入力したぬいぐるみの名前・観察日・観察文だけです。広告や解析のためのトラッキングも行っていません。
+        本サービスは<strong>アカウント登録がなく、氏名・メールアドレス・電話番号などを一切取得しません</strong>。運営者のサーバーに保存されるのは、観察日記で自動発行される匿名の識別子と、入力されたぬいの名前・観察日・観察文だけです。<br />
+        <strong>スケジュールに書いた内容は、運営者のサーバーに送信されません。</strong>ブラウザの中だけに保存され、画像もブラウザの中でつくられます。<br />
+        広告や解析のためのトラッキングも行っていません。
       </div>
       <p>ただし、本サービスは外部のサービス（データベース、ボット対策、ウェブフォント、ホスティング）を利用しており、それらの提供事業者にはIPアドレス等の通信情報が送信されます。詳しくは第4項をご覧ください。</p>
     </article>
@@ -102,16 +106,19 @@
     <article>
       <h2>2. 取得する情報</h2>
 
-      <h3>(1) 本サービスが保存する情報</h3>
+      <h3>(1) 運営者のサーバーに保存される情報（観察日記）</h3>
       <ul>
-        <li><strong>匿名ID</strong>：はじめて本サービスを開いたときに自動発行される、ランダムな識別子です。氏名やメールアドレスとは結び付いていません。</li>
-        <li><strong>ぬいぐるみの名前</strong>：利用者が入力した文字列</li>
+        <li><strong>匿名ID</strong>：はじめて観察日記を開いたときに自動発行される、ランダムな識別子です。氏名やメールアドレスとは結び付いていません。</li>
+        <li><strong>ぬいの名前</strong>：利用者が入力した文字列</li>
         <li><strong>観察日・観察文・記録された日時</strong></li>
       </ul>
       <p>これらは、利用者の観察記録を表示するためだけに使用します。</p>
 
       <h3>(2) ブラウザに保存される情報</h3>
-      <p>匿名IDでのログイン状態を保つため、ブラウザのローカルストレージに認証情報を保存します。これは記録の持ち主を判別するためのもので、閲覧履歴の追跡や広告には使用しません。</p>
+      <ul>
+        <li><strong>観察日記の認証情報</strong>：匿名IDでのログイン状態を保つため、ブラウザのローカルストレージに保存します。これは記録の持ち主を判別するためのもので、閲覧履歴の追跡や広告には使用しません。</li>
+        <li><strong>スケジュールの入力内容</strong>：書きかけの見出し・時刻・内容を、次に開いたときのためにブラウザのローカルストレージに保存します。<strong>この内容が運営者のサーバーに送信されることはありません。</strong></li>
+      </ul>
 
       <h3>(3) 取得しない情報</h3>
       <p>氏名、メールアドレス、電話番号、住所、生年月日、支払い情報、位置情報、連絡先、写真は取得しません。アクセス解析ツールも導入していません。</p>
@@ -122,6 +129,8 @@
       <ol class="items">
         <li>観察結果の表示、および観察記録の保存・表示のため</li>
         <li>1つの名前につき1日1回という制限を機能させるため</li>
+        <li>スケジュールの書きかけの内容を、同じブラウザで開いたときに復元するため</li>
+        <li>お知らせの内容を表示するため</li>
         <li>不正利用・自動プログラムによる大量アクセスを防止するため</li>
         <li>不具合の調査、本サービスの維持・改善のため</li>
       </ol>
@@ -133,25 +142,25 @@
 
       <div class="svc">
         <p class="name">Supabase（Supabase, Inc.）</p>
-        <p class="role">データベースと匿名認証。第2項(1)の情報はここに保存されます。データが保存される国は、運営者が選択したサーバーの所在地によります。</p>
+        <p class="role">データベースと匿名認証。第2項(1)の情報はここに保存されます。お知らせのページも、掲載内容を読み取るためにここへ接続します（読み取りのみで、利用者の情報は送信しません）。データが保存される国は、運営者が選択したサーバーの所在地によります。</p>
         <p class="pp"><a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">https://supabase.com/privacy</a></p>
       </div>
 
       <div class="svc">
         <p class="name">Cloudflare Turnstile（Cloudflare, Inc.）</p>
-        <p class="role">自動プログラムによる不正利用を防ぐための人間確認。判定のためにブラウザの情報やIPアドレスがCloudflareに送信されます。追跡目的のCookieは使用されません。</p>
+        <p class="role">自動プログラムによる不正利用を防ぐための人間確認。観察日記の初回利用時のみ動作し、判定のためにブラウザの情報やIPアドレスがCloudflareに送信されます。追跡目的のCookieは使用されません。</p>
         <p class="pp"><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">https://www.cloudflare.com/privacypolicy/</a></p>
       </div>
 
       <div class="svc">
         <p class="name">Google Fonts（Google LLC）</p>
-        <p class="role">画面表示に使うウェブフォントの配信。</p>
+        <p class="role">画面表示に使うウェブフォントの配信。すべてのページで利用します。</p>
         <p class="pp"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">https://policies.google.com/privacy</a></p>
       </div>
 
       <div class="svc">
         <p class="name">jsDelivr（Volentio JSD Limited）</p>
-        <p class="role">本サービスが利用するプログラム部品（ライブラリ）の配信。</p>
+        <p class="role">観察日記とお知らせが利用するプログラム部品（ライブラリ）の配信。</p>
         <p class="pp"><a href="https://www.jsdelivr.com/terms/privacy-policy" target="_blank" rel="noopener noreferrer">https://www.jsdelivr.com/terms/privacy-policy</a></p>
       </div>
 
@@ -160,12 +169,17 @@
         <p class="role">本サービスのページ自体の配信（ホスティング）。</p>
         <p class="pp"><a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement</a></p>
       </div>
+
+      <div class="callout">
+        <strong>スケジュールのページは、ページ自体の配信（GitHub Pages）とウェブフォント（Google Fonts）以外へ通信しません。</strong>Supabase・Turnstile・jsDelivr へは接続せず、書いた内容が外部へ送られることもありません。
+      </div>
     </article>
 
     <article>
-      <h2>5. 共有機能について</h2>
-      <p>観察結果をSNS等に共有する機能を利用した場合、共有先のサービスに、観察日・観察文・入力されたぬいぐるみの名前・本サービスのURLが送信されます。共有した内容の公開範囲や取り扱いは、共有先のサービスの規約と、利用者自身の設定によります。</p>
-      <p>ぬいぐるみの名前は共有される文章に含まれます。本名など知られたくない情報を入力しないでください。</p>
+      <h2>5. 共有機能・画像について</h2>
+      <p>観察結果をSNS等に共有する機能を利用した場合、共有先のサービスに、観察日・観察文・入力されたぬいの名前・本サービスのURLが送信されます。</p>
+      <p>観察カードやスケジュールの画像は、利用者のブラウザの中でつくられます。運営者はこれを受け取りません。ただし、保存した画像をSNS等に投稿した場合は、そこに写っている文字（ぬいの名前や書いた予定）がそのまま公開されます。</p>
+      <p>共有した内容の公開範囲や取り扱いは、共有先のサービスの規約と、利用者自身の設定によります。本名など知られたくない情報は入力しないでください。</p>
     </article>
 
     <article>
@@ -176,7 +190,7 @@
     <article>
       <h2>7. Cookie・広告について</h2>
       <p>本サービスは、広告配信および行動ターゲティングのためのCookieを使用していません。アクセス解析も行っていません。</p>
-      <p>将来的に広告を掲載する場合には、事前に本ポリシーを改定し、配信事業者名とその取り扱いを明記したうえで、本サービス上でお知らせします。</p>
+      <p>将来的に広告を掲載する場合には、事前に本ポリシーを改定し、配信事業者名とその取り扱いを明記したうえで、<a href="news.html">お知らせ</a>に掲載します。</p>
     </article>
 
     <article>
@@ -184,7 +198,8 @@
       <p>観察記録は、本サービスが提供されている間、原則として保存されます。</p>
       <p>本サービスは匿名IDのみで利用者を識別しており、<strong>運営者には「どの記録が誰のものか」を確認する手段がありません</strong>。そのため、個別の記録の開示・訂正・削除のご請求には、本人確認ができないことを理由にお応えできない場合があります。あらかじめご了承ください。</p>
       <p>なお、ブラウザのサイトデータを消去すると匿名IDは失われ、それまでの記録は画面に表示されなくなります（記録はどの利用者のものか特定できないデータとしてサーバー上に残ります）。</p>
-      <p>本サービスを終了する場合、保存されていた記録は削除されます。</p>
+      <p>スケジュールの入力内容は、そもそもサーバーに存在しません。画面の「ぜんぶ消す」を押すか、ブラウザのサイトデータを消去すれば、その時点で失われます。復元はできません。</p>
+      <p>本サービスを終了する場合、保存されていた観察記録は削除されます。</p>
     </article>
 
     <article>
@@ -195,12 +210,12 @@
 
     <article>
       <h2>10. 未成年者について</h2>
-      <p>未成年の方は、保護者の同意を得たうえでご利用ください。本サービスは、ぬいぐるみの名前以外に個人を特定する情報の入力を求めません。</p>
+      <p>未成年の方は、保護者の同意を得たうえでご利用ください。本サービスは、ぬいの名前やスケジュールの内容以外に、個人を特定する情報の入力を求めません。</p>
     </article>
 
     <article>
       <h2>11. 本ポリシーの変更</h2>
-      <p>運営者は、必要に応じて本ポリシーを変更することがあります。変更後の内容は、本ページに掲載した時点から適用されます。</p>
+      <p>運営者は、必要に応じて本ポリシーを変更することがあります。変更後の内容は、本ページに掲載した時点から適用されます。重要な変更については、<a href="news.html">お知らせ</a>にも掲載します。</p>
     </article>
 
     <article>
@@ -209,16 +224,19 @@
       <a href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAMAAB3NpIBUNjhHMDA3MVRZUlcwMk9CME9POEdNWTVWQS4u" target="_blank" rel="noopener noreferrer">お問い合わせフォーム（Microsoft Forms）</a></p>
     </article>
 
-    <p class="meta">制定日：2026年8月2日</p>
+    <p class="meta">制定日：2026年8月2日<br />最終改定日：2026年8月10日</p>
   </div>
 
-  <nav class="links">
-    <a href="index.html">ホーム</a>
-    <a href="about.html">このサイトについて</a>
-    <a href="terms.html">利用規約</a>
-  </nav>
-
-  <footer>ぬい観察日記</footer>
+  <footer>
+    <nav class="links">
+      <a href="index.html">ホーム</a>
+      <a href="about.html">このサイトについて</a>
+      <a href="news.html">お知らせ</a>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+    <p class="sitename">ぬいについてのサイト</p>
+  </footer>
 </div>
 </body>
 </html>

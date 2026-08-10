@@ -11,7 +11,7 @@
   base-uri 'none';
   form-action 'none';
 " />
-<title>利用規約｜ぬい観察日記</title>
+<title>利用規約｜ぬいについてのサイト</title>
 <meta name="description" content="ぬい観察日記の利用規約です。ご利用の前にお読みください。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -61,35 +61,44 @@
   a:hover{color:var(--berry)}
   .meta{font-size:13px;color:var(--muted);margin-top:22px;text-align:right}
 
-  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:24px}
-  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
-    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
-  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
-  nav.links a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
-  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+  /* ---- フッター。index.html と同じ、控えめな下線リンクにそろえています。 ---- */
+  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
+  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
+    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
+  nav.links a:hover{color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
+  footer{text-align:center;margin-top:34px}
+  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1 class="title">利用規約</h1>
-    <p class="subtitle">ぬい観察日記<span class="dot">.</span></p>
+    <p class="subtitle">ぬいについてのサイト<span class="dot">.</span></p>
   </header>
 
   <div class="felt">
-    <p class="lead">この利用規約（以下「本規約」）は、アユラ（@ayura_plus、以下「運営者」）が提供するウェブサービス「ぬい観察日記」（以下「本サービス」）の利用条件を定めるものです。本サービスを利用された方（以下「利用者」）は、本規約に同意したものとみなします。</p>
+    <p class="lead">この利用規約（以下「本規約」）は、アユラ（@ayura_plus、以下「運営者」）が提供するウェブサイト「ぬいについてのサイト」（以下「本サービス」）の利用条件を定めるものです。本サービスを利用された方（以下「利用者」）は、本規約に同意したものとみなします。</p>
 
     <hr class="divider" />
 
     <article>
       <h2>第1条（本サービスの内容）</h2>
-      <p>本サービスは、利用者が入力したぬいぐるみの名前に対して、あらかじめ用意された文章の中から1つを選んで表示し、その記録を保存する無料のウェブサービスです。表示される文章はフィクションであり、実在のぬいぐるみの状態や出来事を示すものではありません。</p>
+      <p>本サービスは、次の機能からなる無料のウェブサイトです。</p>
+      <ol class="items">
+        <li><strong>ぬい観察日記</strong>（以下「観察日記」）：利用者が入力したぬいの名前に対して、あらかじめ用意された文章の中から1つを選んで表示し、その記録を保存する機能。</li>
+        <li><strong>ぬいスケジュール</strong>（以下「スケジュール」）：利用者が入力した時刻と内容から1日の予定表を組み立て、画像として保存できる機能。</li>
+        <li><strong>お知らせ</strong>：本サービスの変更や追加、本規約の改定などを掲載するページ。</li>
+      </ol>
+      <p>観察日記に表示される文章はフィクションであり、実在のぬいの状態や出来事を示すものではありません。</p>
     </article>
 
     <article>
       <h2>第2条（利用登録）</h2>
-      <p>本サービスの利用にあたり、アカウント登録は必要ありません。利用者が本サービスを開いた時点で、ブラウザごとに匿名の識別子が自動的に発行され、これが観察記録の保存単位となります。</p>
+      <p>本サービスの利用にあたり、アカウント登録は必要ありません。観察日記を開いた時点で、ブラウザごとに匿名の識別子が自動的に発行され、これが観察記録の保存単位となります。</p>
       <p>この識別子はブラウザに保存されるため、端末やブラウザを変更した場合、またはブラウザのデータを消去した場合、それまでの記録にはアクセスできなくなります。運営者は、本人確認の手段を持たないため、記録の復元・移行・引き継ぎに応じることができません。</p>
+      <p>スケジュールおよびお知らせの閲覧には、匿名の識別子を含め、いかなる登録も必要ありません。</p>
     </article>
 
     <article>
@@ -102,12 +111,22 @@
     </article>
 
     <article>
-      <h2>第4条（入力される名前について）</h2>
-      <p>利用者は、ぬいぐるみの名前として、本名・住所・電話番号・メールアドレス等の個人を特定できる情報や、第三者の権利を侵害する語句、公序良俗に反する語句を入力しないでください。入力された名前は画面に表示され、共有機能を利用した場合には外部サービスに送信されます。</p>
+      <h2>第4条（スケジュールの取り扱い）</h2>
+      <ol class="items">
+        <li>スケジュールに入力された内容は、運営者のサーバーには送信されず、利用者のブラウザの中にのみ保存されます。運営者が内容を閲覧することはありません。</li>
+        <li>作成される画像は、利用者のブラウザの中で組み立てられます。作成回数に制限はありません。</li>
+        <li>入力内容は、画面上の「ぜんぶ消す」の操作、ブラウザのデータ消去、端末やブラウザの変更によって失われます。失われた内容を運営者が復元することはできません。</li>
+      </ol>
     </article>
 
     <article>
-      <h2>第5条（禁止事項）</h2>
+      <h2>第5条（入力される内容について）</h2>
+      <p>利用者は、ぬいの名前、スケジュールの見出し、時刻および内容のいずれについても、本名・住所・電話番号・メールアドレス等の個人を特定できる情報や、第三者の権利を侵害する語句、公序良俗に反する語句を入力しないでください。</p>
+      <p>入力された内容は画面に表示され、共有機能を利用した場合、または画像を保存して外部に投稿した場合には、その内容が外部に公開されます。</p>
+    </article>
+
+    <article>
+      <h2>第6条（禁止事項）</h2>
       <p>利用者は、本サービスの利用にあたり、次の行為を行ってはなりません。</p>
       <ol class="items">
         <li>法令または公序良俗に違反する行為</li>
@@ -121,68 +140,74 @@
     </article>
 
     <article>
-      <h2>第6条（共有機能）</h2>
-      <p>本サービスには、観察結果を外部のSNS等に共有する機能があります。共有した内容の公開範囲や取り扱いは、各SNSの規約およびその利用者自身の設定によります。共有によって生じた事柄について、運営者は責任を負いません。</p>
+      <h2>第7条（共有・画像の保存）</h2>
+      <p>本サービスには、観察結果を外部のSNS等に共有する機能、および観察結果とスケジュールを画像として保存する機能があります。</p>
+      <p>共有した内容や保存した画像の公開範囲および取り扱いは、共有先のサービスの規約と、利用者自身の設定によります。共有・投稿によって生じた事柄について、運営者は責任を負いません。</p>
     </article>
 
     <article>
-      <h2>第7条（知的財産権）</h2>
+      <h2>第8条（知的財産権）</h2>
       <p>本サービスに表示される文章、デザイン、プログラムその他一切のコンテンツに関する著作権その他の権利は、運営者または正当な権利者に帰属します。</p>
-      <p>利用者は、本サービスの利用にあたり表示された観察文を、個人的な利用の範囲および共有機能・SNSへの投稿の範囲で自由に利用できます。ただし、文章を一括して収集・複製し、別のサービスやアプリケーションのデータとして利用することはできません。</p>
+      <p>利用者は、表示された観察文および作成したスケジュールの画像を、個人的な利用の範囲および共有機能・SNSへの投稿の範囲で自由に利用できます。ただし、観察文を一括して収集・複製し、別のサービスやアプリケーションのデータとして利用することはできません。</p>
+      <p>利用者がスケジュールに入力した文章そのものの権利は、利用者に帰属します。運営者はこれを取得しません。</p>
     </article>
 
     <article>
-      <h2>第8条（サービスの変更・中断・終了）</h2>
+      <h2>第9条（サービスの変更・中断・終了）</h2>
       <p>運営者は、利用者への事前の通知なく、本サービスの内容を変更し、または提供を中断・終了することができます。これに伴い、保存されていた観察記録が失われる場合があります。</p>
       <p>本サービスは個人が趣味として運営しており、外部サービスの障害や仕様変更等により、予告なく利用できなくなることがあります。</p>
     </article>
 
     <article>
-      <h2>第9条（免責事項）</h2>
+      <h2>第10条（免責事項）</h2>
       <ol class="items">
         <li>本サービスは現状有姿で提供され、運営者は、その完全性・正確性・有用性・特定目的への適合性、および継続的に利用できることを保証しません。</li>
         <li>運営者は、本サービスの利用または利用できなかったことにより利用者に生じた損害について、責任を負いません。ただし、運営者の故意または重大な過失による場合を除きます。</li>
         <li>前項ただし書の場合であっても、運営者が負う責任は、通常生じうる直接かつ現実の損害に限られます。</li>
-        <li>観察記録の消失・破損について、運営者はその復元の義務を負いません。</li>
+        <li>観察記録およびスケジュールの入力内容の消失・破損について、運営者はその復元の義務を負いません。</li>
       </ol>
     </article>
 
     <article>
-      <h2>第10条（利用の制限）</h2>
+      <h2>第11条（利用の制限）</h2>
       <p>運営者は、利用者が本規約に違反したと判断した場合、事前の通知なく、当該利用者による本サービスの利用を制限し、または記録を削除することができます。</p>
     </article>
 
     <article>
-      <h2>第11条（広告について）</h2>
-      <p>本サービスでは、将来的に広告を掲載する場合があります。広告を掲載する際は、事前に本規約および<a href="privacy.html">プライバシーポリシー</a>を改定し、本サービス上でお知らせします。</p>
+      <h2>第12条（広告について）</h2>
+      <p>本サービスでは、将来的に広告を掲載する場合があります。広告を掲載する際は、事前に本規約および<a href="privacy.html">プライバシーポリシー</a>を改定し、<a href="news.html">お知らせ</a>に掲載します。</p>
     </article>
 
     <article>
-      <h2>第12条（本規約の変更）</h2>
+      <h2>第13条（本規約の変更）</h2>
       <p>運営者は、必要と判断した場合、本規約を変更することができます。変更後の規約は、本ページに掲載した時点から効力を生じます。変更後に本サービスを利用された場合、変更後の規約に同意したものとみなします。</p>
+      <p>重要な変更については、<a href="news.html">お知らせ</a>にも掲載します。</p>
     </article>
 
     <article>
-      <h2>第13条（準拠法・管轄裁判所）</h2>
+      <h2>第14条（準拠法・管轄裁判所）</h2>
       <p>本規約の解釈および本サービスの利用には日本法を適用します。本サービスに関して紛争が生じた場合には、運営者の住所地を管轄する日本の裁判所を第一審の専属的合意管轄裁判所とします。</p>
     </article>
 
     <article>
-      <h2>第14条（お問い合わせ）</h2>
+      <h2>第15条（お問い合わせ）</h2>
       <p>本規約に関するお問い合わせは、次の連絡先までお願いします。<br />
       <a href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAMAAB3NpIBUNjhHMDA3MVRZUlcwMk9CME9POEdNWTVWQS4u" target="_blank" rel="noopener noreferrer">お問い合わせフォーム（Microsoft Forms）</a></p>
     </article>
 
-    <p class="meta">制定日：2026年8月2日</p>
+    <p class="meta">制定日：2026年8月2日<br />最終改定日：2026年8月10日</p>
   </div>
 
-  <nav class="links">
-    <a href="index.html">ホーム</a>
-    <a href="about.html">このサイトについて</a>
-    <a href="privacy.html">プライバシーポリシー</a>
-  </nav>
-
-  <footer>ぬい観察日記</footer>
+  <footer>
+    <nav class="links">
+      <a href="index.html">ホーム</a>
+      <a href="about.html">このサイトについて</a>
+      <a href="news.html">お知らせ</a>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+    <p class="sitename">ぬいについてのサイト</p>
+  </footer>
 </div>
 </body>
 </html>

@@ -3,688 +3,127 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<!-- Content-Security-Policy: 依存ライブラリが汚染されても、通信先を Supabase・CDN・Turnstile だけに限定します。
-     ※ Supabase の URL を変更したら、下の connect-src のドメインも必ず合わせて変更してください。
-     ※ challenges.cloudflare.com は Turnstile 用です（script/connect/frame）。 -->
+<!-- このページはJavaScriptを一切使いません。CSPも通信先をフォントだけに絞っています。 -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com 'unsafe-inline';
   style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
   font-src https://fonts.gstatic.com;
   img-src 'self' data:;
-  connect-src https://xuekmypfzxszpmmqmfsl.supabase.co wss://xuekmypfzxszpmmqmfsl.supabase.co https://challenges.cloudflare.com;
-  frame-src https://challenges.cloudflare.com;
   base-uri 'none';
   form-action 'none';
 " />
-<title>ぬい観察日記</title>
+<title>ぬいについてのサイト</title>
+<meta name="description" content="ぬいの「今日の様子」が届く「ぬい観察日記」と、1日のスケジュール表をつくれる「ぬいスケジュール」。おうちの子とすごす、ちいさなページです。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
 <style>
   :root {
     --bg:#efeaf6; --bg-2:#f6f1f9; --surface:#fffdf9; --ink:#4c4356; --muted:#9a8fa8;
-    --berry:#e5738e; --berry-dk:#cf5c78; --sage:#8ab59b; --stitch:#d9c2e4;
+    --berry:#e5738e; --berry-dk:#cf5c78; --sage:#8ab59b; --sage-dk:#6d9c82; --stitch:#d9c2e4;
     --line:#e7dced; --radius:22px; --shadow:0 10px 30px rgba(90,60,110,.10);
     --font:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
   body{
-    font-family:var(--font); color:var(--ink); line-height:1.7; -webkit-font-smoothing:antialiased;
+    font-family:var(--font); color:var(--ink); line-height:1.8; -webkit-font-smoothing:antialiased;
     min-height:100vh;
     background:
       radial-gradient(1200px 600px at 15% -10%, #fbeef4 0%, transparent 55%),
       radial-gradient(1000px 700px at 110% 10%, #e9f3ec 0%, transparent 50%),
       linear-gradient(180deg,var(--bg) 0%,var(--bg-2) 100%);
   }
-  .wrap{max-width:620px;margin:0 auto;padding:34px 18px 80px}
-  header{text-align:center;margin-bottom:26px}
-  .title{font-size:32px;font-weight:800;letter-spacing:.06em;margin:0}
+  .wrap{max-width:600px;margin:0 auto;padding:40px 18px 60px}
+
+  /* ---- ヘッダー：サイト名だけを置いています ---- */
+  header{text-align:center;margin-bottom:28px}
+  .title{font-size:30px;font-weight:800;letter-spacing:.06em;margin:0}
   .title .dot{color:var(--berry)}
-  .subtitle{margin:6px 0 0;color:var(--muted);font-size:14px;letter-spacing:.04em}
 
-  .banner{display:none;background:#fff4f6;border:2px dashed var(--berry);color:var(--berry-dk);
-    border-radius:16px;padding:14px 16px;margin-bottom:20px;font-size:14px}
-  .banner.show{display:block}
-  .banner code{background:#fde7ec;padding:1px 6px;border-radius:6px;font-size:13px}
+  /* ---- ふたつの入口 ---- */
+  .menu{display:flex;flex-direction:column;gap:16px}
+  .card{display:block;text-decoration:none;color:inherit;position:relative;
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:26px 24px 24px;
+    transition:transform .12s ease,box-shadow .12s ease}
+  .card::after{content:"";position:absolute;inset:7px;border:2px dashed var(--stitch);
+    border-radius:calc(var(--radius) - 9px);pointer-events:none;transition:border-color .15s}
+  .card > *{position:relative}
+  .card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(90,60,110,.16)}
+  .card:active{transform:translateY(0);box-shadow:var(--shadow)}
+  .card:focus-visible{outline:3px solid var(--sage);outline-offset:3px}
 
-  .felt{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);position:relative;padding:24px 22px}
-  .felt::after{content:"";position:absolute;inset:7px;border:2px dashed var(--stitch);
-    border-radius:calc(var(--radius) - 9px);pointer-events:none}
+  .card-name{font-size:22px;font-weight:800;letter-spacing:.04em;margin:0}
+  .card-desc{margin:8px 0 0;font-size:14.5px;color:var(--ink)}
+  .card-go{margin:14px 0 0;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .card-go .arrow{transition:transform .15s}
+  .card:hover .card-go .arrow{transform:translateX(4px)}
 
-  .draw{margin-bottom:20px}
-  label.field-label{display:block;font-size:13px;color:var(--muted);margin:0 0 8px 2px;letter-spacing:.05em}
-  .name-input{width:100%;border:2px solid var(--line);background:#fff;border-radius:16px;
-    padding:14px 16px;font-family:var(--font);font-size:18px;color:var(--ink);outline:none;transition:border-color .15s}
-  .name-input:focus{border-color:var(--berry)}
-  .name-input::placeholder{color:#c7bcd2}
-  .draw-btn{margin-top:14px;width:100%;border:none;cursor:pointer;background:var(--berry);color:#fff;
-    font-family:var(--font);font-weight:800;font-size:18px;letter-spacing:.08em;padding:15px 18px;border-radius:18px;
-    box-shadow:0 6px 0 var(--berry-dk);transition:transform .06s,box-shadow .06s,background .15s}
-  .draw-btn:hover{background:#ec7f98}
-  .draw-btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--berry-dk)}
-  .draw-btn:disabled{background:#d8cee2;color:#fff;box-shadow:0 6px 0 #c3b6d0;cursor:default}
-  .hint{margin:12px 2px 0;font-size:12.5px;color:var(--muted);text-align:center}
+  /* 観察日記＝ベリー、スケジュール＝若葉。色で機能を覚えてもらう狙いです。 */
+  .card.diary .card-name{color:var(--berry-dk)}
+  .card.diary .card-go{color:var(--berry-dk)}
+  .card.diary:hover::after{border-color:var(--berry)}
+  .card.sched .card-name{color:var(--sage-dk)}
+  .card.sched .card-go{color:var(--sage-dk)}
+  .card.sched:hover::after{border-color:var(--sage)}
+  /* お知らせは読み物なので、上の2つより控えめにしています。 */
+  .card.news{padding:20px 24px 18px}
+  .card.news .card-name{color:var(--muted);font-size:18px}
+  .card.news .card-desc{font-size:13.5px;color:var(--muted)}
+  .card.news .card-go{color:var(--muted);font-size:13px;margin-top:10px}
+  .card.news:hover::after{border-color:var(--stitch)}
 
-  .result{margin-top:20px;display:none}
-  .result.show{display:block}
-  .bubble{background:linear-gradient(180deg,#fffef8,#fdf6ef);border-radius:var(--radius);box-shadow:var(--shadow);
-    padding:30px 26px 26px;position:relative;text-align:center;
-    animation:pop .5s cubic-bezier(.2,1.3,.4,1) both, sway 4.5s ease-in-out .5s infinite}
-  .bubble::after{content:"";position:absolute;inset:7px;border:2px dashed var(--sage);
-    border-radius:calc(var(--radius) - 9px);pointer-events:none}
-  .stamp{display:inline-block;font-size:12px;letter-spacing:.14em;color:var(--sage);
-    border:2px dashed var(--sage);border-radius:999px;padding:3px 12px;margin-bottom:14px}
-  .sentence{font-size:22px;font-weight:700;line-height:1.85;margin:0}
-  .sentence .who{color:var(--berry)}
-  .locked-note{margin:14px 0 0;font-size:12.5px;color:var(--muted)}
-  .share-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px}
-  .share-btn{border:2px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;
-    font-family:var(--font);font-weight:700;font-size:13.5px;padding:8px 15px;border-radius:999px;
-    transition:border-color .15s,color .15s,transform .06s}
-  .share-btn:hover{border-color:var(--berry);color:var(--berry-dk)}
-  .share-btn:active{transform:translateY(2px)}
-  .share-btn:focus-visible{outline:2px solid var(--berry);outline-offset:2px}
-  .share-btn:disabled{cursor:default;color:#c7bcd2;border-color:var(--line)}
-  .share-btn.primary{border-color:var(--sage);color:var(--sage)}
-  .share-btn.primary:hover{border-color:var(--berry);color:var(--berry-dk)}
+  /* ---- フッターのリンク列。控えめな下線リンクにしています。 ---- */
+  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
+  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
+    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
+  nav.links a:hover{color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
+  footer{text-align:center;margin-top:34px}
+  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
 
-  /* 画像プレビュー。作った画像をそのまま見せて、保存・共有・長押し保存のどれでも選べるようにします。 */
-  .sheet{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;
-    background:rgba(60,42,74,.55)}
-  .sheet.show{display:flex}
-  .sheet-inner{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
-    padding:18px;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;text-align:center}
-  .sheet-inner h2{margin:2px 0 12px;font-size:15px;font-weight:800;letter-spacing:.04em}
-  .sheet-img{width:100%;height:auto;display:block;border-radius:14px;border:2px solid var(--line)}
-  .sheet-hint{margin:12px 2px 0;font-size:12.5px;color:var(--muted);line-height:1.75}
-  .sheet-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
-  @keyframes pop{from{opacity:0;transform:scale(.9) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
-  @keyframes sway{0%,100%{transform:rotate(-.5deg)}50%{transform:rotate(.5deg)}}
-
-  .panel{margin-top:26px}
-  .panel>summary{list-style:none;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;
-    padding:15px 18px;background:var(--surface);border-radius:16px;box-shadow:var(--shadow);font-weight:700;font-size:15px}
-  .panel>summary::-webkit-details-marker{display:none}
-  .panel>summary .count{font-size:12px;font-weight:700;color:var(--sage);background:#eef6f0;border-radius:999px;padding:3px 11px}
-  .panel[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
-  .panel-body{background:var(--surface);border-radius:0 0 16px 16px;box-shadow:var(--shadow);padding:18px;margin-top:-6px}
-
-  .row{display:flex;gap:8px;margin-bottom:10px}
-  .row .name-input{font-size:15px;padding:11px 13px}
-  .mini-btn{border:none;cursor:pointer;white-space:nowrap;background:var(--sage);color:#fff;font-family:var(--font);
-    font-weight:700;font-size:14px;padding:0 16px;border-radius:14px;transition:filter .15s}
-  .mini-btn:hover{filter:brightness(1.05)}
-  .mini-btn.ghost{background:#fff;color:var(--muted);border:2px solid var(--line)}
-  .mini-btn.berry{background:var(--berry)}
-  textarea.bulk{width:100%;min-height:120px;resize:vertical;font-family:var(--font);font-size:14px;color:var(--ink);
-    border:2px solid var(--line);border-radius:14px;padding:12px 13px;outline:none;line-height:1.7}
-  textarea.bulk:focus{border-color:var(--sage)}
-  .divider{height:1px;background:var(--line);margin:16px 0;border:0}
-  .search{margin-bottom:10px}
-  .list{max-height:260px;overflow-y:auto;border:2px solid var(--line);border-radius:14px;padding:6px}
-  .list-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;font-size:14.5px}
-  .list-item:hover{background:#faf6fc}
-  .list-item .txt{flex:1}
-  .mine-tag{font-size:11px;color:var(--sage);border:1px dashed var(--sage);border-radius:999px;padding:1px 7px}
-  .del{border:none;background:transparent;cursor:pointer;color:#d6a9b7;font-size:18px;line-height:1;padding:2px 6px;border-radius:8px}
-  .del:hover{background:#fbeef2;color:var(--berry)}
-  .empty{text-align:center;color:var(--muted);font-size:14px;padding:18px}
-  .panel-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .hist-item{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
-    width:100%;padding:10px 8px;border:0;border-bottom:1px dashed var(--line);border-radius:10px;
-    background:transparent;font-family:var(--font);color:var(--ink);font-size:14px;text-align:left;
-    cursor:pointer;transition:background .15s}
-  .hist-item:hover{background:#faf6fc}
-  .hist-item:focus-visible{outline:2px solid var(--berry);outline-offset:-2px}
-  .hist-item:last-child{border-bottom:0}
-  .hist-note{margin:0 0 8px 2px;font-size:12.5px;color:var(--muted)}
-  .hist-item .date{color:var(--muted);font-size:12.5px;white-space:nowrap}
-  .hist-item .who2{color:var(--berry);font-weight:700}
-  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
-    padding:11px 20px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .25s;
-    z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.2)}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:30px}
-  @media (prefers-reduced-motion:reduce){.bubble{animation:pop .3s ease both}}
+  @media (prefers-reduced-motion:reduce){
+    .card,.card-go .arrow{transition:none}
+    .card:hover{transform:none}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1 class="title">ぬい観察日記<span class="dot">.</span></h1>
-    <p class="subtitle">今日のぬいぐるみを、そっと観察。</p>
+    <h1 class="title">ぬいについてのサイト<span class="dot">.</span></h1>
   </header>
 
-  <div id="banner" class="banner"></div>
+  <main class="menu">
+    <a class="card diary" href="diary.html">
+      <p class="card-name">ぬい観察日記</p>
+      <p class="card-desc">ぬいの名前を入れると、その子の「今日の様子」が一文だけ届きます。届いた文は、あなただけの記録として残ります。</p>
+      <p class="card-go">観察する<span class="arrow">→</span></p>
+    </a>
 
-  <!-- Turnstile ウィジェット。初回訪問時の匿名ログインのときだけ表示されます。 -->
-  <div id="tsContainer" style="display:none;justify-content:center;margin-bottom:18px;"></div>
+    <a class="card sched" href="schedule.html">
+      <p class="card-name">ぬいスケジュール</p>
+      <p class="card-desc">ぬいの1日の予定表をつくれます。時刻としていることを書き込んで、そのまま画像として保存できます。</p>
+      <p class="card-go">つくる<span class="arrow">→</span></p>
+    </a>
 
-  <section class="felt draw">
-    <label class="field-label" for="nameInput">ぬいぐるみの名前</label>
-    <input id="nameInput" class="name-input" type="text" placeholder="例）くまちゃん" maxlength="24" autocomplete="off" />
-    <button id="drawBtn" class="draw-btn">今日の様子を観察する</button>
-    <p class="hint">名前ごとに 1日1回。一度観察したら、その日はやり直せません。</p>
-  </section>
-
-  <section id="result" class="result">
-    <div class="bubble">
-      <span class="stamp" id="resultDate">TODAY</span>
-      <p class="sentence" id="resultText"></p>
-      <p class="locked-note" id="lockedNote"></p>
-      <div class="share-row">
-        <button id="shareImgBtn" class="share-btn primary">画像を保存</button>
-        <button id="shareNativeBtn" class="share-btn" style="display:none">シェアする</button>
-        <button id="shareCopyBtn" class="share-btn">文章をコピー</button>
-      </div>
-    </div>
-  </section>
-
-  <details class="panel" id="histPanel">
-    <summary>これまでの観察記録 <span class="count" id="histBadge">…</span></summary>
-    <div class="panel-body">
-      <div id="histList"><p class="empty">読み込み中…</p></div>
-    </div>
-  </details>
+    <a class="card news" href="news.html">
+      <p class="card-name">お知らせ</p>
+      <p class="card-desc">新しくできたこと、これからのこと、規約の改定など。</p>
+      <p class="card-go">よむ<span class="arrow">→</span></p>
+    </a>
+  </main>
 
   <footer>
-  観察記録はあなた専用に保存されます<br />
-  <a href="about.html" style="color:var(--muted)">このサイトについて</a>
-  ・<a href="terms.html" style="color:var(--muted)">利用規約</a>
-  ・<a href="privacy.html" style="color:var(--muted)">プライバシーポリシー</a>
+    <nav class="links">
+      <a href="about.html">このサイトについて</a>
+      <a href="news.html">お知らせ</a>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+    <p class="sitename">ぬいについてのサイト</p>
   </footer>
 </div>
-
-<!-- 保存がうまくいかない端末むけの控え（画像を長押しで保存してもらいます） -->
-<div class="sheet" id="imgSheet" role="dialog" aria-modal="true" aria-label="観察カードの画像">
-  <div class="sheet-inner">
-    <h2>観察カード</h2>
-    <img id="sheetImg" class="sheet-img" alt="観察カード" />
-    <p class="sheet-hint">画像を長押し（パソコンは右クリック）して保存してください。</p>
-    <div class="sheet-actions">
-      <button id="sheetCloseBtn" class="share-btn">閉じる</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script
-  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.js"
-  integrity="sha384-6foGJ1oz/y3anEo0BXRtTgBK1GvpnR0GbJZb0ijG+nBAJ4rYT+VqlD/9e3CSiFIA"
-  crossorigin="anonymous"
-  referrerpolicy="no-referrer"></script>
-<!-- Cloudflare Turnstile ローダー。頻繁に更新されるため SRI は付けません（CSPで配信元を限定）。 -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
-<script>
-/* ============================================================
-   ▼ ここにあなたの Supabase プロジェクトの値を入れてください
-   ============================================================ */
-const SUPABASE_URL = "https://xuekmypfzxszpmmqmfsl.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_a75xUa9gRXrH1cLB5sdGsw_MJ_0VThq";
-
-/* ▼ Cloudflare Turnstile の「サイトキー」を入れてください（公開情報なので埋め込みOK）
-   Secret キーは Supabase ダッシュボード側にだけ設定します。ここには入れないでください。 */
-const TURNSTILE_SITEKEY = "0x4AAAAAAD__N08vFGBCb_oY";
-/* ============================================================ */
-
-const $ = (id) => document.getElementById(id);
-const todayStr = () => {
-  const d = new Date(), p = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-};
-let toastTimer;
-function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show");
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),1800); }
-function banner(html){ const b=$("banner"); b.innerHTML=html; b.classList.add("show"); }
-function disableDraw(){ $("drawBtn").disabled=true; }
-
-/* ---- Cloudflare Turnstile ----
-   ウィジェットを表示してトークンを1つ取得します。多くの場合は無操作（不可視）で通り、
-   チャレンジが必要なときだけ画面に表示されます（appearance:'interaction-only'）。 */
-function getTurnstileToken(){
-  return new Promise((resolve, reject) => {
-    const container = $("tsContainer");
-    container.style.display = "flex";
-    const render = () => {
-      try {
-        window.turnstile.render(container, {
-          sitekey: TURNSTILE_SITEKEY,
-          appearance: "interaction-only",
-          callback: (token) => resolve(token),
-          "error-callback": () => reject(new Error("turnstile-error")),
-          "expired-callback": () => reject(new Error("turnstile-expired")),
-        });
-      } catch(e){ reject(e); }
-    };
-    if(window.turnstile && window.turnstile.render){ render(); return; }
-    // ローダーがまだ読み込み中なら少し待つ
-    let tries = 0;
-    const iv = setInterval(() => {
-      if(window.turnstile && window.turnstile.render){ clearInterval(iv); render(); }
-      else if(++tries > 100){ clearInterval(iv); reject(new Error("turnstile-not-loaded")); }
-    }, 100);
-  });
-}
-function hideTurnstile(){ const c=$("tsContainer"); if(c){ c.style.display="none"; } }
-
-let sb=null, myUid=null;
-let behaviors=[];  // [{id, text, mine}]
-let history=[];    // [{name, date, text}]
-
-/* ---- init ---- */
-async function init(){
-  if(!window.supabase){
-    banner("Supabaseライブラリの読み込みに失敗しました。ネットワーク／CDNを確認してください。");
-    disableDraw(); return;
-  }
-  if(SUPABASE_URL.includes("YOUR-") || SUPABASE_ANON_KEY.includes("YOUR-")){
-    banner("セットアップが未完了です。ファイル冒頭の <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> を、あなたのプロジェクトの値に置き換えてください。");
-    disableDraw(); return;
-  }
-  if(TURNSTILE_SITEKEY.includes("YOUR-")){
-    banner("セットアップが未完了です。ファイル冒頭の <code>TURNSTILE_SITEKEY</code> に、Cloudflare Turnstile のサイトキーを設定してください。");
-    disableDraw(); return;
-  }
-  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // 匿名ログイン（端末ごとにセッションが保存され、同じユーザーとして扱われます）
-  // セッションが無い＝初回訪問のときだけ、Turnstile で人間確認してからログインします。
-  let { data:{ session } } = await sb.auth.getSession();
-  if(!session){
-    let captchaToken;
-    try {
-      captchaToken = await getTurnstileToken();
-    } catch(e){
-      banner("人間確認（Turnstile）に失敗しました。ページを再読み込みしてください。解決しない場合は <code>TURNSTILE_SITEKEY</code> の値をご確認ください。");
-      disableDraw(); return;
-    }
-    const { error } = await sb.auth.signInAnonymously({ options:{ captchaToken } });
-    hideTurnstile();
-    if(error){
-      banner("匿名ログインに失敗しました。Supabase の Authentication で「Anonymous sign-ins」の有効化と、Bot and Abuse Protection の Turnstile Secret 設定をご確認ください。");
-      disableDraw(); return;
-    }
-  }
-  const { data:{ user } } = await sb.auth.getUser();
-  myUid = user ? user.id : null;
-
-  bindEvents();
-  await loadBehaviors();
-  await loadHistory();
-}
-
-/* ---- behaviors (shared, read-only for users) ----
-   行動リストはSupabaseの behaviors テーブルで管理者が管理します。
-   利用ユーザーには一覧を表示せず、抽選の元データとしてのみ読み込みます。 */
-async function loadBehaviors(){
-  const { data, error } = await sb.from("behaviors")
-    .select("id,text").order("created_at",{ ascending:true });
-  if(error){ toast("観察リストの読み込みに失敗しました"); return; }
-  behaviors = (data||[]).map(r => ({ id:r.id, text:r.text }));
-}
-
-/* ---- draw (per user, 1/day/plush) ---- */
-async function draw(){
-  const name = $("nameInput").value.trim();
-  if(!name){ toast("ぬいぐるみの名前を入れてね"); $("nameInput").focus(); return; }
-  if(behaviors.length===0){ toast("観察リストが空です。管理者にお知らせください。"); return; }
-  const day = todayStr();
-
-  const { data: ex } = await sb.from("records")
-    .select("text").eq("plush_name",name).eq("day",day).maybeSingle();
-  if(ex){ showResult(name, ex.text, day, "locked"); return; }
-
-  const sentence = behaviors[Math.floor(Math.random()*behaviors.length)].text;
-  const { error } = await sb.from("records").insert({ plush_name:name, day, text:sentence });
-  if(error){
-    // 同時実行などで既に入っていた場合は取り直して表示
-    const { data: ex2 } = await sb.from("records")
-      .select("text").eq("plush_name",name).eq("day",day).maybeSingle();
-    if(ex2){ showResult(name, ex2.text, day, "locked"); return; }
-    toast("保存に失敗しました"); return;
-  }
-  await loadHistory();
-  showResult(name, sentence, day, "new");
-}
-
-/* mode: "new"（引いたばかり） / "locked"（今日はもう観察ずみ） / "past"（観察記録からの再表示） */
-function showResult(name, sentence, day, mode){
-  lastShown = { name, day };
-  cardCanvas = null; cardBlob = null;   // 前回作った画像は破棄（別の子・別の日と混ざらないように）
-  renderSentence($("resultText"), sentence, name, "who");
-  $("resultDate").textContent = String(day).replace(/-/g,".");
-  $("lockedNote").textContent =
-    mode === "locked" ? "今日はもう観察ずみ。また明日ね。" :
-    mode === "past"   ? "観察記録から表示しています。" : "";
-  const r=$("result"); r.classList.add("show");
-  const b=r.querySelector(".bubble"); b.style.animation="none"; void b.offsetWidth; b.style.animation="";
-  r.scrollIntoView({ behavior:"smooth", block:"center" });
-}
-
-/* ---- history (per user) ---- */
-async function loadHistory(){
-  if(!myUid){ return; }  // ユーザー未確定なら何も読まない
-  const { data, error } = await sb.from("records")
-    .select("plush_name,day,text")
-    .eq("user_id", myUid)   // RLS任せにせず、クライアント側でも自分の記録だけに限定（多層防御）
-    .order("day",{ ascending:false }).order("created_at",{ ascending:false })
-    .limit(60);
-  if(error){ return; }
-  history = (data||[]).map(r=>({ name:r.plush_name, date:r.day, text:r.text }));
-  renderHistory();
-}
-
-/* ---- share ----
-   画面に出ている観察結果を、そのままSNSや任意のアプリに共有します。
-   共有するのは「日付・観察文・このページのURL」だけで、記録そのものは公開されません。
-   観察文は renderSentence で {name} を置換ずみの表示テキストをそのまま使います。 */
-const SHARE_HASHTAG = "ぬい観察日記";
-function shareUrl(){ return location.origin + location.pathname; }
-function shareText(){
-  const day = $("resultDate").textContent;
-  const line = $("resultText").textContent;
-  return `${day}\n${line}\n#${SHARE_HASHTAG}`;
-}
-
-/* ============================================================
-   ---- 観察カードの画像化 ----
-   画面のスクリーンショットを撮るのではなく、共有用のカードを canvas に
-   一から描き直します。こうすることで、
-     ・端末の画面幅や余白に左右されず、いつも同じ 1080×1080 の正方形になる
-     ・スマホでも文字がぼやけない（等倍ではなく高解像度で描いている）
-     ・画面には無い「サイト名」を画像の中に入れられる
-   という利点があります。外部ライブラリは使わないので、CSPの変更も不要です。
-   ============================================================ */
-/* 黄金比（1:1.618）の横長。SNSのタイムラインで切り取られにくい形です。 */
-const CARD_W = 1618, CARD_H = 1000;
-const CARD_FONT = '"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif';
-const C_INK="#4c4356", C_MUTED="#9a8fa8", C_BERRY="#e5738e", C_SAGE="#8ab59b", C_SURFACE="#fffdf9";
-/* 禁則処理：行頭に置けない文字（句読点・閉じ括弧・小書き仮名・長音）と、行末に置けない文字（開き括弧） */
-const NO_LINE_START = "、。，．・：；！？!?」』）］｝〉》”’ゝゞーぁぃぅぇぉっゃゅょゎヵヶァィゥェォッャュョヮ〜…‥";
-const NO_LINE_END   = "「『（［｛〈《“‘";
-
-let lastShown = { name:"", day:"" };
-let cardCanvas = null, cardBlob = null;
-
-function rrect(ctx,x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.arcTo(x+w,y,x+w,y+h,r);
-  ctx.arcTo(x+w,y+h,x,y+h,r);
-  ctx.arcTo(x,y+h,x,y,r);
-  ctx.arcTo(x,y,x+w,y,r);
-  ctx.closePath();
-}
-
-/* 画面に描かれている観察文を、そのまま「文字＋色」の並びとして取り出します。
-   名前の部分（span.who）だけベリー色になるので、画像でも同じ見た目になります。 */
-function resultChars(){
-  const out = [];
-  $("resultText").childNodes.forEach(n => {
-    const hl = (n.nodeType === 1 && n.classList && n.classList.contains("who"));
-    for(const ch of (n.textContent || "")) out.push({ ch, hl });
-  });
-  return out;
-}
-/* 同じ色が続く部分をまとめる（1文字ずつ描くと字間が不自然になるため） */
-function toRuns(chars){
-  const runs = [];
-  chars.forEach(c => {
-    const last = runs[runs.length-1];
-    if(last && last.hl === c.hl) last.t += c.ch; else runs.push({ t:c.ch, hl:c.hl });
-  });
-  return runs;
-}
-/* 日本語なので単語区切りではなく1文字ずつ折り返し、禁則処理だけ入れます。 */
-function wrapChars(ctx, chars, maxW){
-  const lines = []; let line = []; let w = 0;
-  const width = (c) => ctx.measureText(c.ch).width;
-  for(const c of chars){
-    const cw = width(c);
-    if(line.length && w + cw > maxW){
-      if(NO_LINE_START.includes(c.ch)){ line.push(c); w += cw; continue; }  // ぶら下げる
-      const carry = [];
-      while(line.length > 1 && NO_LINE_END.includes(line[line.length-1].ch)) carry.unshift(line.pop());
-      lines.push(line);
-      line = carry.concat([c]);
-      w = line.reduce((a,x)=>a+width(x), 0);
-      continue;
-    }
-    line.push(c); w += cw;
-  }
-  if(line.length) lines.push(line);
-  return lines;
-}
-/* 文が長いときは文字を少しずつ小さくして、カードの中に必ず収めます。 */
-function layoutSentence(ctx, chars, maxW, maxH){
-  for(let size = 68; size >= 30; size -= 2){
-    ctx.font = `700 ${size}px ${CARD_FONT}`;
-    const lines = wrapChars(ctx, chars, maxW);
-    const lineH = Math.round(size * 1.8);
-    if(lines.length * lineH <= maxH) return { lines, size, lineH };
-  }
-  ctx.font = `700 30px ${CARD_FONT}`;
-  return { lines: wrapChars(ctx, chars, maxW), size:30, lineH:54 };
-}
-
-/* Webフォント（M PLUS Rounded 1c）を、実際に描く文字ぶんだけ先に読み込みます。
-   これをしないと、canvas には代替フォントで描かれてしまうことがあります。 */
-async function ensureCardFont(text){
-  if(!document.fonts || !document.fonts.load) return;
-  try{
-    await Promise.all([
-      document.fonts.load(`700 68px "M PLUS Rounded 1c"`, text),
-      document.fonts.load(`800 34px "M PLUS Rounded 1c"`, text),
-      document.fonts.load(`500 30px "M PLUS Rounded 1c"`, text),
-    ]);
-    await document.fonts.ready;
-  }catch(e){ /* 読めなくても代替フォントで描画は続けます */ }
-}
-
-async function drawCard(){
-  const chars = resultChars();
-  const dateText = $("resultDate").textContent;
-  await ensureCardFont(chars.map(c=>c.ch).join("") + dateText + "ぬい観察日記");
-
-  const W = CARD_W, H = CARD_H;
-  const cv = document.createElement("canvas");
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext("2d");
-  const cx = W / 2;
-
-  // 背景：アプリと同じ、薄紫にピンクと若葉がにじむグラデーション
-  const base = ctx.createLinearGradient(0,0,0,H);
-  base.addColorStop(0,"#efeaf6"); base.addColorStop(1,"#f6f1f9");
-  ctx.fillStyle = base; ctx.fillRect(0,0,W,H);
-  const pink = ctx.createRadialGradient(W*0.12,-H*0.15,0, W*0.12,-H*0.15,W*0.7);
-  pink.addColorStop(0,"rgba(251,238,244,1)"); pink.addColorStop(1,"rgba(251,238,244,0)");
-  ctx.fillStyle = pink; ctx.fillRect(0,0,W,H);
-  const green = ctx.createRadialGradient(W*1.02,H*0.1,0, W*1.02,H*0.1,W*0.62);
-  green.addColorStop(0,"rgba(233,243,236,1)"); green.addColorStop(1,"rgba(233,243,236,0)");
-  ctx.fillStyle = green; ctx.fillRect(0,0,W,H);
-
-  // フェルトのカード
-  const M = 64, CW = W - M*2, CH = H - M*2;
-  ctx.save();
-  ctx.shadowColor = "rgba(90,60,110,.16)"; ctx.shadowBlur = 40; ctx.shadowOffsetY = 14;
-  ctx.fillStyle = C_SURFACE; rrect(ctx, M, M, CW, CH, 56); ctx.fill();
-  ctx.restore();
-
-  // 内側の点線ステッチ
-  ctx.save();
-  ctx.setLineDash([14,12]); ctx.lineWidth = 4; ctx.strokeStyle = C_SAGE;
-  rrect(ctx, M+20, M+20, CW-40, CH-40, 40); ctx.stroke();
-  ctx.restore();
-
-  ctx.textAlign = "left"; ctx.textBaseline = "middle";
-
-  // 日付スタンプ（点線の丸枠）
-  ctx.font = `500 30px ${CARD_FONT}`;
-  const stampW = ctx.measureText(dateText).width + 76;
-  const stampH = 58, stampY = M + 72;
-  ctx.save();
-  ctx.setLineDash([9,8]); ctx.lineWidth = 3; ctx.strokeStyle = C_SAGE;
-  rrect(ctx, cx - stampW/2, stampY, stampW, stampH, stampH/2); ctx.stroke();
-  ctx.restore();
-  ctx.fillStyle = C_SAGE; ctx.textAlign = "center";
-  ctx.fillText(dateText, cx, stampY + stampH/2 + 1);
-
-  // 差出人（下段）
-  const footY = M + CH - 96;
-  ctx.font = `800 32px ${CARD_FONT}`; ctx.fillStyle = C_BERRY;
-  ctx.fillText("ぬい観察日記", cx, footY);
-  ctx.font = `500 23px ${CARD_FONT}`; ctx.fillStyle = C_MUTED;
-  ctx.fillText(shareUrl().replace(/^https?:\/\//,""), cx, footY + 42);
-
-  // 観察文（カードの空きスペースの中央に置く）
-  const top = stampY + stampH + 48, bottom = footY - 56;
-  const box = { w: CW - 300, h: bottom - top };
-  const { lines, lineH } = layoutSentence(ctx, chars, box.w, box.h);
-  const blockTop = top + (box.h - lines.length*lineH) / 2;
-  ctx.textAlign = "left";
-  lines.forEach((line, i) => {
-    const runs = toRuns(line);
-    const widths = runs.map(r => ctx.measureText(r.t).width);
-    const total = widths.reduce((a,b)=>a+b, 0);
-    let x = cx - total/2;
-    const y = blockTop + lineH/2 + i*lineH;
-    runs.forEach((r, j) => {
-      ctx.fillStyle = r.hl ? C_BERRY : C_INK;
-      ctx.fillText(r.t, x, y);
-      x += widths[j];
-    });
-  });
-
-  return cv;
-}
-
-function cardFileName(){
-  return `nui-kansatsu-${lastShown.day || todayStr()}.png`;
-}
-function canvasToBlob(cv){
-  return new Promise(res => cv.toBlob(b => res(b), "image/png"));
-}
-
-/* 「画像を保存」→ 画像を作って、そのまま端末に保存します。
-   保存に対応していない一部のブラウザでは、代わりにプレビューを開いて
-   「長押しで保存」してもらいます。 */
-async function saveCard(){
-  const btn = $("shareImgBtn"), label = btn.textContent;
-  btn.disabled = true; btn.textContent = "作成中…";
-  try{
-    cardCanvas = await drawCard();
-    cardBlob = await canvasToBlob(cardCanvas);
-    if(!cardBlob) throw new Error("no-blob");
-
-    const a = document.createElement("a");
-    if(!("download" in a)) { openCardSheet(); return; }   // 保存に非対応 → 長押し保存へ
-    const url = URL.createObjectURL(cardBlob);
-    a.href = url; a.download = cardFileName();
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    toast("画像を保存しました");
-  }catch(e){
-    if(cardCanvas){ openCardSheet(); }
-    else { toast("画像を作成できませんでした"); }
-  }finally{
-    btn.disabled = false; btn.textContent = label;
-  }
-}
-
-/* 控え：作った画像をそのまま見せて、長押し（右クリック）で保存してもらいます */
-function openCardSheet(){
-  if(!cardCanvas) return;
-  $("sheetImg").src = cardCanvas.toDataURL("image/png");  // data: は CSP の img-src で許可済み
-  $("imgSheet").classList.add("show");
-}
-function closeCardSheet(){ $("imgSheet").classList.remove("show"); }
-
-/* 「シェアする」（OS標準の共有シート）：文章だけを共有します。
-   画像がほしいときは「画像を保存」を使ってもらう作りにしています。 */
-async function shareNative(){
-  try{
-    await navigator.share({ text: shareText(), url: shareUrl() });
-  }catch(e){
-    if(e && e.name === "AbortError"){ return; }  // ユーザーが閉じただけ
-    toast("シェアできませんでした");
-  }
-}
-async function shareCopy(){
-  const body = `${shareText()}\n${shareUrl()}`;
-  try{
-    await navigator.clipboard.writeText(body);
-    toast("コピーしました");
-  }catch(e){
-    toast("コピーできませんでした");
-  }
-}
-
-/* ---- render ---- */
-function renderHistory(){
-  $("histBadge").textContent = history.length + "件";
-  const el=$("histList");
-  if(history.length===0){ el.innerHTML=`<p class="empty">まだ記録はありません。</p>`; return; }
-  el.innerHTML="";
-  const note=document.createElement("p"); note.className="hist-note";
-  note.textContent="タップすると大きく表示して、画像にできます。";
-  el.appendChild(note);
-  history.forEach(h=>{
-    const row=document.createElement("button"); row.className="hist-item"; row.type="button";
-    const left=document.createElement("span");
-    renderSentence(left, h.text, h.name, "who2");
-    const right=document.createElement("span"); right.className="date"; right.textContent=String(h.date).replace(/-/g,".");
-    row.appendChild(left); row.appendChild(right);
-    // 過去の記録も、今日の結果と同じカードに出します（画像化もそのまま使えます）
-    row.addEventListener("click", () => showResult(h.name, h.text, h.date, "past"));
-    el.appendChild(row);
-  });
-}
-
-/* 行動文の中の {name} を、入力されたぬいぐるみの名前に差し替えて描画します。
-   名前の部分だけ色を変えるため、テキストと <span> を組み立てて入れています。
-   {name} を含まない古い形式の文は、末尾に名前を付ける従来どおりの表示になります。 */
-function renderSentence(el, sentence, name, cls){
-  el.textContent = "";
-  const parts = trimStop(sentence).split("{name}");
-  if(parts.length === 1){ parts.push(""); }   // 旧形式は末尾に名前
-  parts.forEach((p, i) => {
-    if(i > 0){
-      const who = document.createElement("span");
-      who.className = cls; who.textContent = name;
-      el.appendChild(who);
-    }
-    if(p) el.appendChild(document.createTextNode(p));
-  });
-}
-
-/* 「××している○○」の形にするため、行動文の末尾の句点だけを取り除きます。
-   （！ や ？ は雰囲気が変わるので、あえて残しています） */
-function trimStop(s){ return String(s).replace(/[。．.]+\s*$/, ""); }
-
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
-
-/* ---- events ---- */
-function bindEvents(){
-  $("drawBtn").addEventListener("click", draw);
-  $("nameInput").addEventListener("keydown", e=>{ if(e.key==="Enter") draw(); });
-  $("shareImgBtn").addEventListener("click", saveCard);
-  $("shareCopyBtn").addEventListener("click", shareCopy);
-  // OS標準の共有シート（主にスマホ）が使える端末でだけ「シェアする」を出します
-  if(navigator.share){
-    const b = $("shareNativeBtn");
-    b.style.display = "";
-    b.addEventListener("click", shareNative);
-  }
-  // 保存できなかったときの控え
-  $("sheetCloseBtn").addEventListener("click", closeCardSheet);
-  $("imgSheet").addEventListener("click", e => { if(e.target === $("imgSheet")) closeCardSheet(); });
-  document.addEventListener("keydown", e => { if(e.key === "Escape") closeCardSheet(); });
-}
-
-init();
-</script>
 </body>
 </html>

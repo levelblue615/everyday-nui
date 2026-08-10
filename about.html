@@ -12,8 +12,8 @@
   base-uri 'none';
   form-action 'none';
 " />
-<title>このサイトについて｜ぬい観察日記</title>
-<meta name="description" content="ぬい観察日記は、ぬいぐるみの名前を入れると「今日の様子」が一文で届く、1日1回のちいさな観察アプリです。使い方と仕組みを説明します。" />
+<title>このサイトについて｜ぬいについてのサイト</title>
+<meta name="description" content="「ぬいについてのサイト」には、1日1回の「ぬい観察日記」と、1日の予定表を画像にできる「ぬいスケジュール」があります。使い方と仕組みを説明します。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -58,6 +58,13 @@
   a:hover{color:var(--berry)}
   .note{font-size:13.5px;color:var(--muted)}
 
+  /* ふたつの機能を並べる箇条書き。行頭の飾りは点線の丸にしています。 */
+  ul.feats{list-style:none;padding:0;margin:0 0 14px}
+  ul.feats li{position:relative;padding-left:20px;font-size:15px;margin-bottom:9px}
+  ul.feats li::before{content:"";position:absolute;left:2px;top:.72em;width:8px;height:8px;
+    border:2px dashed var(--sage);border-radius:999px}
+  ul.feats a{font-weight:700}
+
   ul.books{list-style:none;padding:0;margin:16px 0 0;font-size:14.5px}
   ul.books li{margin-bottom:8px}
   ul.books li:last-child{margin-bottom:0}
@@ -77,6 +84,19 @@
   .sample .sentence{font-size:19px;font-weight:700;line-height:1.85;margin:0;position:relative}
   .sample .who{color:var(--berry)}
 
+  /* サンプルのスケジュール表。schedule.html がつくる画像に合わせています。 */
+  .sample.sched{padding:22px 20px 18px;text-align:left}
+  .sch-foot{margin:14px 0 0;text-align:center;font-size:12px;font-weight:800;
+    color:var(--berry);letter-spacing:.06em;position:relative}
+  table.sch{width:100%;border-collapse:collapse;position:relative}
+  table.sch td{padding:7px 6px;font-size:13.5px;line-height:1.5}
+  table.sch td.t{width:33%;text-align:center;font-weight:700;white-space:nowrap}
+  table.sch td.a{text-align:center;border-left:2px solid #a695b6}
+  table.sch tr.head td{padding-top:0;padding-bottom:11px;font-weight:800;font-size:15px}
+  table.sch tr.first td{border-top:2px solid #a695b6}
+  table.sch tr.row td{border-top:2px dotted #c2b1d1}
+  table.sch tr.first td.a,table.sch tr.row td.a{border-left:2px solid #a695b6}
+
   .steps{counter-reset:step;list-style:none;padding:0;margin:0}
   .steps li{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;font-size:15px}
   .steps li::before{counter-increment:step;content:counter(step);flex:none;
@@ -90,65 +110,108 @@
   .qa .q::before{content:"Q";color:var(--sage);font-weight:800;margin-right:8px}
   .qa .a{font-size:14.5px;margin:0;color:var(--ink)}
 
+  /* しくみの本文は、使い方より一段小さくしています。 */
+  .how p{font-size:13.5px;margin-bottom:11px}
+  .how p:last-child{margin-bottom:0}
+  .qa + .note{margin:18px 0 0}
+
   .cta{display:block;text-align:center;text-decoration:none;background:var(--berry);color:#fff;
     font-weight:800;font-size:17px;letter-spacing:.08em;padding:15px 18px;border-radius:18px;
     box-shadow:0 6px 0 var(--berry-dk);margin:4px 0 8px}
   .cta:hover{background:#ec7f98;color:#fff}
   .cta:active{transform:translateY(4px);box-shadow:0 2px 0 var(--berry-dk)}
   .cta:focus-visible{outline:3px solid var(--sage);outline-offset:3px}
+  /* もう1本のボタン。観察日記＝ベリー、スケジュール＝若葉、で色を分けています。 */
+  .cta.alt{background:var(--sage);box-shadow:0 6px 0 #6f9a80;margin-top:12px}
+  .cta.alt:hover{background:#97c1a7;color:#fff}
+  .cta.alt:active{box-shadow:0 2px 0 #6f9a80}
+  .cta.alt:focus-visible{outline:3px solid var(--berry);outline-offset:3px}
 
-  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:26px}
-  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
-    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
-  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
-  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;line-height:1.9}
+  /* ---- フッター。index.html と同じ、控えめな下線リンクにそろえています。 ---- */
+  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
+  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
+    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
+  nav.links a:hover{color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
+  footer{text-align:center;margin-top:34px}
+  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1 class="title">ぬい観察日記<span class="dot">.</span></h1>
+    <h1 class="title">ぬいについてのサイト<span class="dot">.</span></h1>
     <p class="subtitle">このサイトについて</p>
   </header>
 
   <section class="felt">
     <h2><span class="mark">◆</span>どんなサイト？</h2>
-    <p>ぬいぐるみの名前を入れてボタンを押すと、その子の<strong>「今日の様子」が一文だけ</strong>届きます。それだけのサイトです。</p>
+    <p>ぬいと一緒にいろいろ遊べるページです。運営者が過去に発行した<a href="https://ayura-shop.booth.pm/items/6237630">おえぬいについての本</a>と<a href="https://ayura-shop.booth.pm/items/6883202">おえぬいについての本2</a>という同人誌やSNSでのつぶやきが元ネタとなっています。</p>
+    <p>サイト内の機能はすべて無料で、会員登録などもありません。</p>
+    <ul class="feats">
+      <li><a href="diary.html">ぬい観察日記</a>：名前を入れると、「今日の様子」が一文だけ届きます。1日1回。</li>
+      <li><a href="schedule.html">ぬいスケジュール</a>：ぬいの1日の予定表を作成できます。何度でも。</li>
+    </ul>
+  </section>
+
+  <section class="felt">
+    <h2><span class="mark">◆</span>ぬい観察日記</h2>
+    <p>ぬいの名前を入れてボタンを押すと、その子の<strong>「今日の様子」が一文だけ</strong>届きます。</p>
     <div class="sample">
       <span class="stamp">TODAY</span>
       <p class="sentence">オムレツのおふとんにくるまって眠る<span class="who">くまちゃん</span></p>
     </div>
-    <p>観察できるのは<strong>1つの名前につき1日1回</strong>。引き直しはできません。今日どんな様子だったかは、その日いちどきりのものです。</p>
-    <p>届いた文は、あなただけの観察記録として残っていきます。おうちの子をいくつ登録しても大丈夫です。</p>
-  </section>
+    <p>観察できるのは<strong>1つの名前につき1日1回</strong>。引き直しはできません。今日どんな様子だったかは、その日いちどきりのものです。
+    届いた文は、あなただけの観察記録として残っていきます。おうちの子をいくつ登録しても大丈夫です。</p>
 
-  <section class="felt">
-    <h2><span class="mark">◆</span>使い方</h2>
+    <h3>使い方</h3>
     <ol class="steps">
-      <li>ぬいぐるみの名前を入力します。ニックネームでも、いつも呼んでいる呼び方でもかまいません。</li>
+      <li>ぬいの名前を入力します。ニックネームでも、いつも呼んでいる呼び方でもかまいません。</li>
       <li>「今日の様子を観察する」を押します。その子の今日の一文が表示されます。</li>
       <li>気に入ったら、そのままSNSにシェアできます。</li>
       <li>「これまでの観察記録」を開くと、過去の記録を見返せます。</li>
     </ol>
     <p class="note">名前は表示とシェアに使うので、本名やメールアドレスなど、人に知られたくない情報は入れないでください。</p>
+
+    <h3>しくみ</h3>
+    <div class="how">
+      <p>観察文は、あらかじめ用意された500件以上の文章の中から、その日その名前ぶんだけランダムに選ばれます。文章はすべて運営者によるもので、今のところ利用者が自由に追加・編集することはできません。</p>
+      <p>ログインもメールアドレスの登録も不要です。はじめて開いたときにブラウザごとの<strong>匿名IDが自動で発行され</strong>、それがあなたの観察記録の持ち主になります。名前もメールも登録しないので、こちらから「誰が使っているか」は分かりません。</p>
+      <p>そのかわり、<strong>記録は開いたブラウザに紐づきます</strong>。別の端末やブラウザで開くと別人あつかいになり、記録は引き継がれません。ブラウザの履歴・サイトデータを消した場合も同じです。</p>
+    </div>
   </section>
 
   <section class="felt">
-    <h2><span class="mark">◆</span>仕組み</h2>
-    <p>観察文は、あらかじめ用意された500件以上の文章の中から、その日その名前ぶんだけランダムに選ばれます。文章はすべて運営者によるもので、利用者が追加・編集することはできません。</p>
-    <p>ログインもメールアドレスの登録も不要です。はじめて開いたときにブラウザごとの<strong>匿名IDが自動で発行され</strong>、それがあなたの観察記録の持ち主になります。名前もメールも登録しないので、こちらから「誰が使っているか」は分かりません。</p>
-    <p>そのかわり、<strong>記録は開いたブラウザに紐づきます</strong>。別の端末やブラウザで開くと別人あつかいになり、記録は引き継がれません。ブラウザの履歴・サイトデータを消した場合も同じです。</p>
-    <p class="note">くわしくは<a href="privacy.html">プライバシーポリシー</a>と<a href="terms.html">利用規約</a>をご覧ください。</p>
-  </section>
+    <h2><span class="mark">◆</span>ぬいスケジュール</h2>
+    <p>ぬいの<strong>1日の予定表をつくって、そのまま画像にできます</strong>。左に時刻、右に行動を記入してください。</p>
+    <div class="sample sched">
+      <table class="sch">
+        <tr class="head"><td></td><td class="a">とあるぬいの1日</td></tr>
+        <tr class="first"><td class="t">7:00</td><td class="a">おきる</td></tr>
+        <tr class="row"><td class="t">8:00</td><td class="a">あさごはん</td></tr>
+        <tr class="row"><td class="t">13:00</td><td class="a">ひるね</td></tr>
+        <tr class="row"><td class="t">15:00</td><td class="a">おやつ</td></tr>
+        <tr class="row"><td class="t">16:00</td><td class="a">近所の公園をさんぽ</td></tr>
+        <tr class="row"><td class="t">23:00</td><td class="a">ねる</td></tr>
+      </table>
+      <p class="sch-foot">ぬいスケジュール</p>
+    </div>
+    <p>こちらは<strong>1日1回の制限がありません</strong>。何度でも、いくつでもつくれます。</p>
 
-  <section class="felt">
-    <h2><span class="mark">◆</span>観察文について</h2>
-    <p>観察文は、運営者が自分ちのぬいたちのことを思い浮かべてSNSでつぶやいてきたものです。</p>
-    <p>これまでのつぶやきを収録した同人誌（『おえぬいについての本』『おえぬいについての本2』）をデータベース化し、毎日ひとつずつ呼び出せるようにしました。名前の部分だけが、あなたの子の名前に置き換わります。</p>
-    <ul class="books">
-      <li><a href="https://ayura-shop.booth.pm/items/6237630" target="_blank" rel="noopener noreferrer">おえぬいについての本</a></li>
-      <li><a href="https://ayura-shop.booth.pm/items/6883202" target="_blank" rel="noopener noreferrer">おえぬいについての本2</a></li>
-    </ul>
+    <h3>使い方</h3>
+    <ol class="steps">
+      <li>いちばん上の見出しに「とあるぬいの1日」などと書きます。空のままでもかまいません。</li>
+      <li>左の欄に時刻、右の欄に行動を書きます。行は10行からはじまり、＋−で増やしたり減らしたりできます。</li>
+      <li>思いつかないときは「スケジュール候補」を開いて、言葉をタップすると空いている行に入ります。</li>
+      <li>「画像をつくる」を押すと予定表ができあがるので、「画像を保存」でダウンロードできます。</li>
+    </ol>
+    <p>時刻の欄を空にしたままでも、うすく見えている見本の時刻がその行の時刻として画像に入ります。<strong>何も書いていない行は、画像には出ません</strong>。</p>
+    <p>書きかけの内容は同じブラウザで開けば残っています。消したいときは「ぜんぶ消す」を押してください。</p>
+
+    <h3>しくみ</h3>
+    <div class="how">
+      <p>こちらは<strong>書いた内容を運営者のサーバーに送りません</strong>。入力中の内容はブラウザの中だけに保存され、画像もブラウザの中でつくられます。観察日記とちがって匿名IDも使いません。</p>
+    </div>
   </section>
 
   <section class="felt">
@@ -180,28 +243,45 @@
     </div>
 
     <div class="qa">
+      <p class="q">スケジュールに書いた内容は残りますか？</p>
+      <p class="a">同じブラウザで開けば、書きかけのまま残ります。ただし保存先はブラウザの中だけなので、別の端末には引き継がれません。できあがった表は画像として保存しておけます。</p>
+    </div>
+
+    <div class="qa">
+      <p class="q">スケジュールにも1日1回の制限がありますか？</p>
+      <p class="a">ありません。何度でも、いくつでもつくれます。1日1回なのは観察日記のほうだけです。</p>
+    </div>
+
+    <div class="qa">
+      <p class="q">つくった画像は自由に使えますか？</p>
+      <p class="a">SNSへの投稿など、個人の範囲で自由にお使いください。イラストや写真等の創作のお題として使っていただくことも大歓迎です。このページの名前を記載してくれたら嬉しいですが、特に記載しなくても大丈夫です。</p>
+    </div>
+
+    <div class="qa">
       <p class="q">最初に「人間かどうかの確認」が出ました</p>
       <p class="a">自動プログラムによる大量アクセスを防ぐため、初回だけCloudflare Turnstileという仕組みで確認しています。ほとんどの場合は何も操作せずに通過します。</p>
     </div>
+
+    <p class="note">情報のあつかいについて、くわしくは<a href="privacy.html">プライバシーポリシー</a>と<a href="terms.html">利用規約</a>をご覧ください。</p>
   </section>
 
   <section class="felt">
     <h2><span class="mark">◆</span>運営者・お問い合わせ</h2>
     <p>運営者：アユラ（@ayura_plus）<br />
-       連絡先：<a href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAMAAB3NpIBUNjhHMDA3MVRZUlcwMk9CME9POEdNWTVWQS4u" target="_blank" rel="noopener noreferrer">お問い合わせフォーム</a>
-    </p>
+      連絡先：<a href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAMAAB3NpIBUNjhHMDA3MVRZUlcwMk9CME9POEdNWTVWQS4u" target="_blank" rel="noopener noreferrer">お問い合わせフォーム</a></p> 
     <p class="note">個人が趣味で運営しています。返信までお時間をいただくことがあります。</p>
   </section>
-
-  <a class="cta" href="index.html">観察をはじめる</a>
-
-  <nav class="links">
-    <a href="index.html">ホーム</a>
-    <a href="terms.html">利用規約</a>
-    <a href="privacy.html">プライバシーポリシー</a>
-  </nav>
-
-  <footer>ぬい観察日記</footer>
+  
+  <footer>
+    <nav class="links">
+      <a href="index.html">ホーム</a>
+      <a href="about.html">このサイトについて</a>
+      <a href="news.html">お知らせ</a>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+    <p class="sitename">ぬいについてのサイト</p>
+  </footer>
 </div>
 </body>
 </html>
