@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<!-- このページは外部と通信しません（フォント配信を除く）。画像はブラウザの中だけで作られます。 -->
+<!-- 書いた内容は外部に送信しません。画像はブラウザの中だけで作られます。
+     「画像をつくる」を押したときだけ、使われた回数として日時を1件だけ送ります
+     （内容・名前・IDのたぐいは一切送りません）。 -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
   script-src 'self' 'unsafe-inline';
   style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
   font-src https://fonts.gstatic.com;
   img-src 'self' data: blob:;
+  connect-src https://xuekmypfzxszpmmqmfsl.supabase.co;
   base-uri 'none';
   form-action 'none';
 " />
@@ -599,6 +602,35 @@ function bindRow(i){
   });
 }
 
+/* ---- 使われた回数の記録 ----
+   「画像をつくる」を押したときに1件だけ送ります。送るのは
+   「スケジュールが使われた」という事実と日時だけで、書いた内容は含みません。
+   supabase-js は読み込まず、素の fetch を1回投げるだけにしています。
+   同じタブの中では最初の1回だけ数えます（作り直しは数えません）。
+   失敗しても画像づくりには影響しません。 */
+const USAGE_ENDPOINT = "https://xuekmypfzxszpmmqmfsl.supabase.co/rest/v1/usage_events";
+const USAGE_KEY = "sb_publishable_a75xUa9gRXrH1cLB5sdGsw_MJ_0VThq";
+
+function countUsage(){
+  try{
+    if(sessionStorage.getItem("nui-usage-counted")) return;
+    sessionStorage.setItem("nui-usage-counted", "1");
+  }catch(e){ /* プライベートモード等では毎回数えます */ }
+  try{
+    fetch(USAGE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": USAGE_KEY,
+        "Authorization": "Bearer " + USAGE_KEY,
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({ feature: "schedule" }),
+      keepalive: true
+    }).catch(() => {});
+  }catch(e){ /* 通信できなくても、画像づくりはそのまま続きます */ }
+}
+
 function bindEvents(){
   $("sheetTitle").addEventListener("input", () => { save(); scheduleRebuild(); });
   $("addRowBtn").addEventListener("click", () => {
@@ -608,7 +640,7 @@ function bindEvents(){
   $("delRowBtn").addEventListener("click", () => {
     if(removeRow()){ save(); updateRowButtons(); scheduleRebuild(); }
   });
-  $("makeBtn").addEventListener("click", () => buildImage(true));
+  $("makeBtn").addEventListener("click", () => { countUsage(); buildImage(true); });
   $("saveBtn").addEventListener("click", saveImage);
   $("clearBtn").addEventListener("click", clearAll);
 
