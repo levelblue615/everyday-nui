@@ -113,6 +113,31 @@
   .iconbtn.del:hover{background:#fbeef2;color:var(--berry)}
 
   .search{margin-bottom:10px}
+
+  /* 集計 */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  @media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:#faf6fc;border:2px solid var(--line);border-radius:11px;padding:10px 11px}
+  .stat .k{font-size:10.5px;color:var(--muted);letter-spacing:.04em;display:block;margin-bottom:2px}
+  .stat .v{font-size:21px;font-weight:800;line-height:1.25;font-variant-numeric:tabular-nums}
+  .stat .v .u{font-size:11px;font-weight:700;color:var(--muted);margin-left:2px}
+  .stat.lead{background:#fdf2f6;border-color:var(--stitch)}
+  .stat.lead .v{color:var(--berry-dk)}
+
+  /* 直近14日 */
+  .spark{margin-top:16px}
+  .spark h3{font-size:11.5px;color:var(--muted);letter-spacing:.05em;font-weight:700;margin:0 0 8px 2px}
+  .legend{display:flex;gap:12px;font-size:10.5px;color:var(--muted);margin:0 0 7px 2px}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .bars{display:flex;align-items:flex-end;gap:4px;height:74px;padding:0 2px;
+    border-bottom:2px solid var(--line)}
+  .bars .col{flex:1;display:flex;flex-direction:column-reverse;gap:2px;justify-content:flex-start;min-width:0}
+  .bars .col span{display:block;border-radius:3px 3px 0 0;min-height:0}
+  .bars .col .r{background:var(--berry)}
+  .bars .col .s{background:var(--sage)}
+  .bars .col.none{border-bottom:0}
+  .axis{display:flex;gap:4px;padding:5px 2px 0}
+  .axis span{flex:1;text-align:center;font-size:9px;color:var(--muted);min-width:0}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
     padding:10px 19px;border-radius:12px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;
     transition:all .25s;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.2)}
@@ -150,6 +175,22 @@
 
   <!-- 管理 -->
   <div id="adminView">
+
+    <section class="card">
+      <h2>使われかた<span class="n" id="statsAsOf"></span></h2>
+      <div class="stats" id="statsGrid">
+        <div class="stat"><span class="k">読み込み中</span><span class="v">—</span></div>
+      </div>
+      <div class="spark" id="spark" style="display:none">
+        <h3>この2週間</h3>
+        <p class="legend">
+          <span><i style="background:var(--berry)"></i>観察</span>
+          <span><i style="background:var(--sage)"></i>スケジュール</span>
+        </p>
+        <div class="bars" id="bars"></div>
+        <div class="axis" id="axis"></div>
+      </div>
+    </section>
 
     <section class="card">
       <h2>お知らせを書く</h2>
@@ -425,6 +466,7 @@ async function enterAdmin(){
   $("adminView").style.display = "block";
   msg("loginMsg", "");
   resetNewsForm();
+  await loadStats();
   await loadNews();
   await loadBehaviors();
 }
@@ -432,6 +474,67 @@ async function enterAdmin(){
 async function logout(){
   await sb.auth.signOut();
   location.reload();
+}
+
+/* ---- 使われかた ---- */
+function statCell(label, value, unit, lead){
+  const d = document.createElement("div");
+  d.className = "stat" + (lead ? " lead" : "");
+  const k = document.createElement("span"); k.className = "k"; k.textContent = label;
+  const v = document.createElement("span"); v.className = "v";
+  v.textContent = Number(value).toLocaleString("ja-JP");
+  if(unit){ const u = document.createElement("span"); u.className = "u"; u.textContent = unit; v.appendChild(u); }
+  d.appendChild(k); d.appendChild(v);
+  return d;
+}
+
+async function loadStats(){
+  const grid = $("statsGrid");
+  const { data, error } = await sb.rpc("admin_stats");
+  if(error || !data){
+    grid.textContent = "";
+    grid.appendChild(statCell("集計を読み込めませんでした", 0, "", false));
+    return;
+  }
+
+  grid.textContent = "";
+  grid.appendChild(statCell("観察された回数", data.records_total, "回", true));
+  grid.appendChild(statCell("スケジュール作成", data.schedule_total, "回", true));
+  grid.appendChild(statCell("日記に来た人", data.visitors, "人", false));
+  grid.appendChild(statCell("観察されたぬい", data.plush_names, "体", false));
+  grid.appendChild(statCell("観察文の在庫", data.behaviors_total, "文", false));
+  grid.appendChild(statCell("きょうの観察", data.records_today, "回", false));
+
+  $("statsAsOf").textContent = `7日間 観察${data.records_7d} / 予定表${data.schedule_7d}`;
+  drawSpark(data.daily || []);
+}
+
+/* 棒グラフ。ライブラリは使わず、高さの割合だけで描いています。 */
+function drawSpark(daily){
+  if(daily.length === 0) return;
+  const bars = $("bars"), axis = $("axis");
+  bars.textContent = ""; axis.textContent = "";
+  const peak = Math.max(1, ...daily.map(d => d.records + d.schedule));
+
+  daily.forEach((d, i) => {
+    const col = document.createElement("div");
+    col.className = "col" + (d.records + d.schedule === 0 ? " none" : "");
+    col.title = `${d.d}　観察${d.records}／予定表${d.schedule}`;
+    [["r", d.records], ["s", d.schedule]].forEach(([cls, n]) => {
+      if(n <= 0) return;
+      const b = document.createElement("span");
+      b.className = cls;
+      b.style.height = Math.max(3, Math.round((n / peak) * 70)) + "px";
+      col.appendChild(b);
+    });
+    bars.appendChild(col);
+
+    const lab = document.createElement("span");
+    // 目盛りは3日おきだけ出して、数字がつぶれないようにします
+    lab.textContent = (i % 3 === 0 || i === daily.length - 1) ? String(d.d).slice(8) : "";
+    axis.appendChild(lab);
+  });
+  $("spark").style.display = "";
 }
 
 /* ---- お知らせ ---- */
