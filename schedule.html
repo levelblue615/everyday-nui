@@ -14,7 +14,7 @@
   form-action 'none';
 " />
 <title>ぬいスケジュール｜ぬいについてのサイト</title>
-<meta name="description" content="ぬいの1日の予定表をつくって、そのまま画像として保存できます。書いた内容はブラウザの中だけに残り、何度でもつくり直せます。" />
+<meta name="description" content="ぬいちゃんの1日の予定表をつくって、そのまま画像として保存できます。書いた内容はブラウザの中だけに残り、何度でもつくり直せます。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -121,21 +121,19 @@
     z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.2)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  /* ---- フッター。index.html と同じ、控えめな下線リンクにそろえています。 ---- */
-  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
-  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
-    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
-  nav.links a:hover{color:var(--berry-dk)}
-  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
-  footer{text-align:center;margin-top:34px}
-  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
+  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:26px}
+  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
+    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
+  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1 class="title">ぬいスケジュール<span class="dot">.</span></h1>
-    <p class="subtitle">ぬいのスケジュールを作成できます。</p>
+    <p class="subtitle">ぬいちゃんのスケジュールを作成できます。</p>
   </header>
 
   <section class="felt">
@@ -168,20 +166,20 @@
     <p class="cap">長押しで保存もできます。</p>
     <div class="actions">
       <button id="saveBtn" class="btn">画像を保存</button>
-      <button id="shareBtn" class="btn ghost" style="display:none">画像をシェア</button>
+      <button id="shareBtn" class="btn ghost" style="display:none">シェアする</button>
     </div>
   </section>
 
-  <footer>
-    <nav class="links">
-      <a href="index.html">ホーム</a>
-      <a href="about.html">このサイトについて</a>
-      <a href="news.html">お知らせ</a>
-      <a href="terms.html">利用規約</a>
-      <a href="privacy.html">プライバシーポリシー</a>
-    </nav>
-    <p class="sitename">ぬいについてのサイト</p>
-  </footer>
+  <nav class="links">
+    <a href="index.html">ホーム</a>
+    <a href="diary.html">ぬい観察日記</a>
+    <a href="about.html">このサイトについて</a>
+    <a href="news.html">お知らせ</a>
+    <a href="terms.html">利用規約</a>
+    <a href="privacy.html">プライバシーポリシー</a>
+  </nav>
+
+  <footer>ぬいについてのサイト</footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -557,13 +555,25 @@ async function saveImage(){
   toast("画像を保存しました");
 }
 
-async function shareImage(){
-  if(!cachedBlob){ toast("もういちど押してみてね"); await buildImage(false); return; }
-  const file = new File([cachedBlob], fileName(), { type:"image/png" });
+/* ---- シェア（文章だけ） ----
+   OS標準の共有シートに「日付・見出し・ハッシュタグ」と、このページのURLを渡します。
+   画像は添付しません。画像つきの共有はXなどで不発になることがあるため、
+   画像がほしいときは「画像を保存」で保存して、投稿画面で付けてもらう作りにしています。 */
+const SHARE_HASHTAG = "ぬいスケジュール";
+function shareUrl(){ return location.origin + location.pathname; }
+function todayStr(){
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())}`;
+}
+function shareText(){
+  const title = $("sheetTitle").value.trim() || "とあるぬいの1日";
+  return `${todayStr()}\n${title}\n#${SHARE_HASHTAG}`;
+}
+async function shareNative(){
   try{
-    await navigator.share({ files:[file] });
+    await navigator.share({ text: shareText(), url: shareUrl() });
   }catch(e){
-    if(e && e.name === "AbortError") return;
+    if(e && e.name === "AbortError") return;   // ユーザーが閉じただけ
     toast("シェアできませんでした");
   }
 }
@@ -600,12 +610,11 @@ function bindEvents(){
   $("saveBtn").addEventListener("click", saveImage);
   $("clearBtn").addEventListener("click", clearAll);
 
-  const canShareFiles = !!(navigator.canShare && navigator.share &&
-    navigator.canShare({ files:[new File([new Blob()], "a.png", { type:"image/png" })] }));
-  if(canShareFiles){
+  // OS標準の共有シート（主にスマホ）が使える端末でだけ「シェアする」を出します
+  if(navigator.share){
     const b = $("shareBtn");
     b.style.display = "";
-    b.addEventListener("click", shareImage);
+    b.addEventListener("click", shareNative);
   }
 }
 
