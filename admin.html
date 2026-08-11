@@ -121,6 +121,8 @@
   .stat .k{font-size:10.5px;color:var(--muted);letter-spacing:.04em;display:block;margin-bottom:2px}
   .stat .v{font-size:21px;font-weight:800;line-height:1.25;font-variant-numeric:tabular-nums}
   .stat .v .u{font-size:11px;font-weight:700;color:var(--muted);margin-left:2px}
+  .stat .v .sub{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-top:1px}
+  .stat.lead .v .sub{color:var(--sage-dk)}
   .stat.lead{background:#fdf2f6;border-color:var(--stitch)}
   .stat.lead .v{color:var(--berry-dk)}
 
@@ -477,13 +479,14 @@ async function logout(){
 }
 
 /* ---- 使われかた ---- */
-function statCell(label, value, unit, lead){
+function statCell(label, value, unit, lead, sub){
   const d = document.createElement("div");
   d.className = "stat" + (lead ? " lead" : "");
   const k = document.createElement("span"); k.className = "k"; k.textContent = label;
   const v = document.createElement("span"); v.className = "v";
-  v.textContent = Number(value).toLocaleString("ja-JP");
+  v.textContent = (typeof value === "number") ? value.toLocaleString("ja-JP") : String(value);
   if(unit){ const u = document.createElement("span"); u.className = "u"; u.textContent = unit; v.appendChild(u); }
+  if(sub){ const b = document.createElement("span"); b.className = "sub"; b.textContent = sub; v.appendChild(b); }
   d.appendChild(k); d.appendChild(v);
   return d;
 }
@@ -497,13 +500,20 @@ async function loadStats(){
     return;
   }
 
+  // ()内はきょうのぶん。0のときは出しません。
+  const today = (n) => n > 0 ? `（+${Number(n).toLocaleString("ja-JP")}回）` : "";
+  // 平均観察日数：観察された回数 ÷ 観察されたぬいの数
+  const avg = data.plush_names > 0
+    ? (data.records_total / data.plush_names).toFixed(1)
+    : "—";
+
   grid.textContent = "";
-  grid.appendChild(statCell("観察された回数", data.records_total, "回", true));
-  grid.appendChild(statCell("スケジュール作成", data.schedule_total, "回", true));
+  grid.appendChild(statCell("観察された回数", data.records_total, "回", true, today(data.records_today)));
+  grid.appendChild(statCell("スケジュール作成", data.schedule_total, "回", true, today(data.schedule_today)));
   grid.appendChild(statCell("日記を開いたブラウザ", data.visitors, "台", false));
   grid.appendChild(statCell("観察されたぬい", data.plush_names, "体", false));
-  grid.appendChild(statCell("きょうの観察", data.records_today, "回", false));
-  grid.appendChild(statCell("きょうのスケジュール", data.schedule_today, "回", false));
+  grid.appendChild(statCell("続けて観察されたぬい", data.repeat_names || 0, "体", false));
+  grid.appendChild(statCell("平均観察日数", avg, "日", false));
 
   $("statsAsOf").textContent = `7日間 観察${data.records_7d} / 予定表${data.schedule_7d}`;
   drawSpark(data.daily || []);
