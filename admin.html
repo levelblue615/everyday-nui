@@ -500,10 +500,10 @@ async function loadStats(){
   grid.textContent = "";
   grid.appendChild(statCell("観察された回数", data.records_total, "回", true));
   grid.appendChild(statCell("スケジュール作成", data.schedule_total, "回", true));
-  grid.appendChild(statCell("日記に来た人", data.visitors, "人", false));
+  grid.appendChild(statCell("日記を開いたブラウザ", data.visitors, "台", false));
   grid.appendChild(statCell("観察されたぬい", data.plush_names, "体", false));
-  grid.appendChild(statCell("観察文の在庫", data.behaviors_total, "文", false));
   grid.appendChild(statCell("きょうの観察", data.records_today, "回", false));
+  grid.appendChild(statCell("きょうのスケジュール", data.schedule_today, "回", false));
 
   $("statsAsOf").textContent = `7日間 観察${data.records_7d} / 予定表${data.schedule_7d}`;
   drawSpark(data.daily || []);
