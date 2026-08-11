@@ -61,14 +61,12 @@
   a:hover{color:var(--berry)}
   .meta{font-size:13px;color:var(--muted);margin-top:22px;text-align:right}
 
-  /* ---- フッター。index.html と同じ、控えめな下線リンクにそろえています。 ---- */
-  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
-  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
-    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
-  nav.links a:hover{color:var(--berry-dk)}
-  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
-  footer{text-align:center;margin-top:34px}
-  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
+  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:24px}
+  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
+    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
+  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
 </style>
 </head>
 <body>
@@ -87,11 +85,11 @@
       <h2>第1条（本サービスの内容）</h2>
       <p>本サービスは、次の機能からなる無料のウェブサイトです。</p>
       <ol class="items">
-        <li><strong>ぬい観察日記</strong>（以下「観察日記」）：利用者が入力したぬいの名前に対して、あらかじめ用意された文章の中から1つを選んで表示し、その記録を保存する機能。</li>
+        <li><strong>ぬい観察日記</strong>（以下「観察日記」）：利用者が入力したぬいぐるみの名前に対して、あらかじめ用意された文章の中から1つを選んで表示し、その記録を保存する機能。</li>
         <li><strong>ぬいスケジュール</strong>（以下「スケジュール」）：利用者が入力した時刻と内容から1日の予定表を組み立て、画像として保存できる機能。</li>
         <li><strong>お知らせ</strong>：本サービスの変更や追加、本規約の改定などを掲載するページ。</li>
       </ol>
-      <p>観察日記に表示される文章はフィクションであり、実在のぬいの状態や出来事を示すものではありません。</p>
+      <p>観察日記に表示される文章はフィクションであり、実在のぬいぐるみの状態や出来事を示すものではありません。</p>
     </article>
 
     <article>
@@ -121,7 +119,7 @@
 
     <article>
       <h2>第5条（入力される内容について）</h2>
-      <p>利用者は、ぬいの名前、スケジュールの見出し、時刻および内容のいずれについても、本名・住所・電話番号・メールアドレス等の個人を特定できる情報や、第三者の権利を侵害する語句、公序良俗に反する語句を入力しないでください。</p>
+      <p>利用者は、ぬいぐるみの名前、スケジュールの見出し、時刻および内容のいずれについても、本名・住所・電話番号・メールアドレス等の個人を特定できる情報や、第三者の権利を侵害する語句、公序良俗に反する語句を入力しないでください。</p>
       <p>入力された内容は画面に表示され、共有機能を利用した場合、または画像を保存して外部に投稿した場合には、その内容が外部に公開されます。</p>
     </article>
 
@@ -141,7 +139,8 @@
 
     <article>
       <h2>第7条（共有・画像の保存）</h2>
-      <p>本サービスには、観察結果を外部のSNS等に共有する機能、および観察結果とスケジュールを画像として保存する機能があります。</p>
+      <p>本サービスには、観察結果および作成したスケジュールの見出しを外部のSNS等に共有する機能、ならびに観察結果とスケジュールを画像として保存する機能があります。</p>
+      <p>スケジュールの共有では、共有した日の日付、入力された見出しおよび本サービスのURLが送信されます。各行の時刻と内容は送信されません。</p>
       <p>共有した内容や保存した画像の公開範囲および取り扱いは、共有先のサービスの規約と、利用者自身の設定によります。共有・投稿によって生じた事柄について、運営者は責任を負いません。</p>
     </article>
 
@@ -195,19 +194,17 @@
       <a href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAMAAB3NpIBUNjhHMDA3MVRZUlcwMk9CME9POEdNWTVWQS4u" target="_blank" rel="noopener noreferrer">お問い合わせフォーム（Microsoft Forms）</a></p>
     </article>
 
-    <p class="meta">制定日：2026年8月2日<br />最終改定日：2026年8月10日</p>
+    <p class="meta">制定日：2026年8月2日<br />最終改定日：2026年8月11日</p>
   </div>
 
-  <footer>
-    <nav class="links">
-      <a href="index.html">ホーム</a>
-      <a href="about.html">このサイトについて</a>
-      <a href="news.html">お知らせ</a>
-      <a href="terms.html">利用規約</a>
-      <a href="privacy.html">プライバシーポリシー</a>
-    </nav>
-    <p class="sitename">ぬいについてのサイト</p>
-  </footer>
+  <nav class="links">
+    <a href="index.html">ホーム</a>
+    <a href="about.html">このサイトについて</a>
+    <a href="news.html">お知らせ</a>
+    <a href="privacy.html">プライバシーポリシー</a>
+  </nav>
+
+  <footer>ぬいについてのサイト</footer>
 </div>
 </body>
 </html>
