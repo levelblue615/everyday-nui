@@ -71,12 +71,14 @@
   .svc .pp{font-size:12.5px;color:var(--muted);margin:0}
 
   .meta{font-size:13px;color:var(--muted);margin-top:22px;text-align:right}
-  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:24px}
-  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
-    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
-  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
-  nav.links a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
-  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+  /* ---- フッター。index.html と同じ、控えめな下線リンクにそろえています。 ---- */
+  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
+  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
+    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
+  nav.links a:hover{color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
+  footer{text-align:center;margin-top:34px}
+  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
 </style>
 </head>
 <body>
@@ -226,14 +228,16 @@
     <p class="meta">制定日：2026年8月2日<br />最終改定日：2026年8月11日</p>
   </div>
 
-  <nav class="links">
-    <a href="index.html">ホーム</a>
-    <a href="about.html">このサイトについて</a>
-    <a href="news.html">お知らせ</a>
-    <a href="terms.html">利用規約</a>
-  </nav>
-
-  <footer>ぬいについてのサイト</footer>
+  <footer>
+    <nav class="links">
+      <a href="index.html">ホーム</a>
+      <a href="about.html">このサイトについて</a>
+      <a href="news.html">お知らせ</a>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+    <p class="sitename">ぬいについてのサイト</p>
+  </footer>
 </div>
 </body>
 </html>
