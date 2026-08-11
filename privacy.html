@@ -71,14 +71,12 @@
   .svc .pp{font-size:12.5px;color:var(--muted);margin:0}
 
   .meta{font-size:13px;color:var(--muted);margin-top:22px;text-align:right}
-  /* ---- フッター。index.html と同じ、控えめな下線リンクにそろえています。 ---- */
-  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
-  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
-    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
-  nav.links a:hover{color:var(--berry-dk)}
-  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
-  footer{text-align:center;margin-top:34px}
-  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
+  nav.links{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:24px}
+  nav.links a{background:var(--surface);border:2px solid var(--line);border-radius:999px;
+    padding:8px 16px;font-size:13.5px;font-weight:700;text-decoration:none;color:var(--muted)}
+  nav.links a:hover{border-color:var(--berry);color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
 </style>
 </head>
 <body>
@@ -96,7 +94,7 @@
     <article>
       <h2>1. はじめに（要約）</h2>
       <div class="callout">
-        本サービスは<strong>アカウント登録がなく、氏名・メールアドレス・電話番号などを一切取得しません</strong>。運営者のサーバーに保存されるのは、観察日記で自動発行される匿名の識別子と、入力されたぬいの名前・観察日・観察文だけです。<br />
+        本サービスは<strong>アカウント登録がなく、氏名・メールアドレス・電話番号などを一切取得しません</strong>。運営者のサーバーに保存されるのは、観察日記で自動発行される匿名の識別子と、入力されたぬいぐるみの名前・観察日・観察文だけです。<br />
         <strong>スケジュールに書いた内容は、運営者のサーバーに送信されません。</strong>ブラウザの中だけに保存され、画像もブラウザの中でつくられます。<br />
         広告や解析のためのトラッキングも行っていません。
       </div>
@@ -109,7 +107,7 @@
       <h3>(1) 運営者のサーバーに保存される情報（観察日記）</h3>
       <ul>
         <li><strong>匿名ID</strong>：はじめて観察日記を開いたときに自動発行される、ランダムな識別子です。氏名やメールアドレスとは結び付いていません。</li>
-        <li><strong>ぬいの名前</strong>：利用者が入力した文字列</li>
+        <li><strong>ぬいぐるみの名前</strong>：利用者が入力した文字列</li>
         <li><strong>観察日・観察文・記録された日時</strong></li>
       </ul>
       <p>これらは、利用者の観察記録を表示するためだけに使用します。</p>
@@ -177,8 +175,9 @@
 
     <article>
       <h2>5. 共有機能・画像について</h2>
-      <p>観察結果をSNS等に共有する機能を利用した場合、共有先のサービスに、観察日・観察文・入力されたぬいの名前・本サービスのURLが送信されます。</p>
-      <p>観察カードやスケジュールの画像は、利用者のブラウザの中でつくられます。運営者はこれを受け取りません。ただし、保存した画像をSNS等に投稿した場合は、そこに写っている文字（ぬいの名前や書いた予定）がそのまま公開されます。</p>
+      <p>観察結果をSNS等に共有する機能を利用した場合、共有先のサービスに、観察日・観察文・入力されたぬいぐるみの名前・本サービスのURLが送信されます。</p>
+      <p>スケジュールをSNS等に共有する機能を利用した場合、共有先のサービスに、共有した日の日付・入力された見出し・本サービスのURLが送信されます。<strong>各行の時刻と内容は送信されません。</strong></p>
+      <p>観察カードやスケジュールの画像は、利用者のブラウザの中でつくられます。運営者はこれを受け取りません。ただし、保存した画像をSNS等に投稿した場合は、そこに写っている文字（ぬいぐるみの名前や書いた予定）がそのまま公開されます。</p>
       <p>共有した内容の公開範囲や取り扱いは、共有先のサービスの規約と、利用者自身の設定によります。本名など知られたくない情報は入力しないでください。</p>
     </article>
 
@@ -210,7 +209,7 @@
 
     <article>
       <h2>10. 未成年者について</h2>
-      <p>未成年の方は、保護者の同意を得たうえでご利用ください。本サービスは、ぬいの名前やスケジュールの内容以外に、個人を特定する情報の入力を求めません。</p>
+      <p>未成年の方は、保護者の同意を得たうえでご利用ください。本サービスは、ぬいぐるみの名前やスケジュールの内容以外に、個人を特定する情報の入力を求めません。</p>
     </article>
 
     <article>
@@ -224,19 +223,17 @@
       <a href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAMAAB3NpIBUNjhHMDA3MVRZUlcwMk9CME9POEdNWTVWQS4u" target="_blank" rel="noopener noreferrer">お問い合わせフォーム（Microsoft Forms）</a></p>
     </article>
 
-    <p class="meta">制定日：2026年8月2日<br />最終改定日：2026年8月10日</p>
+    <p class="meta">制定日：2026年8月2日<br />最終改定日：2026年8月11日</p>
   </div>
 
-  <footer>
-    <nav class="links">
-      <a href="index.html">ホーム</a>
-      <a href="about.html">このサイトについて</a>
-      <a href="news.html">お知らせ</a>
-      <a href="terms.html">利用規約</a>
-      <a href="privacy.html">プライバシーポリシー</a>
-    </nav>
-    <p class="sitename">ぬいについてのサイト</p>
-  </footer>
+  <nav class="links">
+    <a href="index.html">ホーム</a>
+    <a href="about.html">このサイトについて</a>
+    <a href="news.html">お知らせ</a>
+    <a href="terms.html">利用規約</a>
+  </nav>
+
+  <footer>ぬいについてのサイト</footer>
 </div>
 </body>
 </html>
