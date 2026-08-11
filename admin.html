@@ -8,11 +8,12 @@
      ※ Supabase の URL を変更したら、下の connect-src も必ず合わせて変更してください。 -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline';
+  script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com 'unsafe-inline';
   style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
   font-src https://fonts.gstatic.com;
   img-src 'self' data:;
-  connect-src https://xuekmypfzxszpmmqmfsl.supabase.co wss://xuekmypfzxszpmmqmfsl.supabase.co;
+  connect-src https://xuekmypfzxszpmmqmfsl.supabase.co wss://xuekmypfzxszpmmqmfsl.supabase.co https://challenges.cloudflare.com;
+  frame-src https://challenges.cloudflare.com;
   base-uri 'none';
   form-action 'none';
 " />
@@ -140,9 +141,11 @@
       <label for="password">パスワード</label>
       <input id="password" type="password" autocomplete="current-password" />
     </div>
+    <div id="tsContainer" style="display:none;justify-content:center;margin:14px 0 2px"></div>
     <div class="row-btns">
       <button class="btn" id="loginBtn">ログイン</button>
     </div>
+    <p class="hint">自動プログラムによる不正ログインを防ぐため、ログイン時に人間確認を行います。ほとんどの場合は何も操作せずに通過します。</p>
   </section>
 
   <!-- 管理 -->
@@ -251,6 +254,8 @@
   integrity="sha384-6foGJ1oz/y3anEo0BXRtTgBK1GvpnR0GbJZb0ijG+nBAJ4rYT+VqlD/9e3CSiFIA"
   crossorigin="anonymous"
   referrerpolicy="no-referrer"></script>
+<!-- Cloudflare Turnstile ローダー。頻繁に更新されるため SRI は付けません（CSPで配信元を限定）。 -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script>
 /* ============================================================
    管理画面
@@ -263,7 +268,13 @@
 const SUPABASE_URL = "https://xuekmypfzxszpmmqmfsl.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_a75xUa9gRXrH1cLB5sdGsw_MJ_0VThq";
 
+/* Supabase の Bot and Abuse Protection を有効にしているため、
+   パスワードでのログインにも Turnstile のトークンが必要です。
+   観察日記と同じサイトキーを使います（公開情報なので埋め込みOK）。 */
+const TURNSTILE_SITEKEY = "0x4AAAAAAD__N08vFGBCb_oY";
+
 const $ = (id) => document.getElementById(id);
+let tsWidgetId = null;
 let sb = null;
 let newsRows = [];
 let behaviors = [];
@@ -330,13 +341,71 @@ async function init(){
   if(session) await enterAdmin();
 }
 
+/* ---- Cloudflare Turnstile ----
+   ウィジェットを1つ描いてトークンを受け取ります。多くの場合は無操作で通り、
+   チャレンジが必要なときだけ画面に出ます（appearance:'interaction-only'）。
+   トークンは1回きりなので、ログインに失敗したら reset して取り直します。 */
+function getTurnstileToken(){
+  return new Promise((resolve, reject) => {
+    const container = $("tsContainer");
+    container.style.display = "flex";
+    const render = () => {
+      try {
+        if(tsWidgetId !== null){
+          window.turnstile.reset(tsWidgetId);
+        }
+        tsWidgetId = window.turnstile.render(container, {
+          sitekey: TURNSTILE_SITEKEY,
+          appearance: "interaction-only",
+          callback: (token) => resolve(token),
+          "error-callback": () => reject(new Error("turnstile-error")),
+          "expired-callback": () => reject(new Error("turnstile-expired")),
+        });
+      } catch(e){ reject(e); }
+    };
+    if(window.turnstile && window.turnstile.render){ render(); return; }
+    let tries = 0;
+    const iv = setInterval(() => {
+      if(window.turnstile && window.turnstile.render){ clearInterval(iv); render(); }
+      else if(++tries > 100){ clearInterval(iv); reject(new Error("turnstile-not-loaded")); }
+    }, 100);
+  });
+}
+function resetTurnstile(){
+  if(tsWidgetId !== null && window.turnstile && window.turnstile.reset){
+    try{ window.turnstile.reset(tsWidgetId); }catch(e){ /* 取り直せなければ再読み込みで対応 */ }
+  }
+}
+
 async function login(){
   const email = $("email").value.trim(), password = $("password").value;
   if(!email || !password){ msg("loginMsg", "メールアドレスとパスワードを入力してください。", "err"); return; }
-  $("loginBtn").disabled = true;
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  $("loginBtn").disabled = false;
-  if(error){ msg("loginMsg", "ログインできませんでした。メールアドレスとパスワードを確認してください。", "err"); return; }
+  const btn = $("loginBtn");
+  btn.disabled = true;
+  msg("loginMsg", "");
+
+  let captchaToken;
+  try{
+    captchaToken = await getTurnstileToken();
+  }catch(e){
+    btn.disabled = false;
+    msg("loginMsg", "人間確認（Turnstile）を通過できませんでした。ページを再読み込みして、もう一度お試しください。", "err");
+    return;
+  }
+
+  const { error } = await sb.auth.signInWithPassword({
+    email, password, options: { captchaToken }
+  });
+  btn.disabled = false;
+
+  if(error){
+    resetTurnstile();   // トークンは1回きりなので、次に押すときのために取り直します
+    const captcha = String(error.message || "").toLowerCase().includes("captcha");
+    msg("loginMsg", captcha
+      ? "人間確認に通りませんでした。もう一度「ログイン」を押してください。"
+      : "ログインできませんでした。メールアドレスとパスワードを確認してください。", "err");
+    return;
+  }
   $("password").value = "";
   await enterAdmin();
 }
