@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Content-Security-Policy: 通信先を Supabase・CDN・Turnstile だけに限定しています。
+     ※ Supabase の URL を変更したら、下の connect-src のドメインも必ず合わせて変更してください。 -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com 'unsafe-inline';
+  style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+  font-src https://fonts.gstatic.com;
+  img-src 'self' data: blob:;
+  connect-src https://xuekmypfzxszpmmqmfsl.supabase.co wss://xuekmypfzxszpmmqmfsl.supabase.co https://challenges.cloudflare.com;
+  frame-src https://challenges.cloudflare.com;
+  base-uri 'none';
+  form-action 'none';
+" />
+<title>ぬい掲示板｜ぬいについてのサイト</title>
+<meta name="description" content="ひらがなだけで書きこめる、ぬいのための掲示板です。板は毎日かわり、過去の板は履歴から読めます。" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#efeaf6; --bg-2:#f6f1f9; --surface:#fffdf9; --ink:#4c4356; --muted:#9a8fa8;
+    --berry:#e5738e; --berry-dk:#cf5c78; --sage:#8ab59b; --sage-dk:#5f9179; --stitch:#d9c2e4;
+    --line:#e7dced; --radius:22px; --shadow:0 10px 30px rgba(90,60,110,.10);
+    --font:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--font); color:var(--ink); line-height:1.8; -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #fbeef4 0%, transparent 55%),
+      radial-gradient(1000px 700px at 110% 10%, #e9f3ec 0%, transparent 50%),
+      linear-gradient(180deg,var(--bg) 0%,var(--bg-2) 100%);
+  }
+  .wrap{max-width:620px;margin:0 auto;padding:34px 16px 60px}
+  header{text-align:center;margin-bottom:22px}
+  .title{font-size:28px;font-weight:800;letter-spacing:.06em;margin:0}
+  .title .dot{color:var(--berry)}
+  .subtitle{margin:6px 0 0;color:var(--muted);font-size:13px;letter-spacing:.04em}
+
+  .banner{display:none;background:#fff4f6;border:2px dashed var(--berry);border-radius:14px;
+    padding:12px 14px;font-size:13px;margin-bottom:16px}
+  .banner.show{display:block}
+  .banner code{background:#fff;padding:1px 5px;border-radius:5px;font-size:12px}
+
+  .felt{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:18px 16px;margin-bottom:16px}
+
+  /* ---- 板の見出しと日付えらび ---- */
+  .boardbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .boardbar .today{font-size:15px;font-weight:700;margin:0}
+  .boardbar .cnt{font-size:12px;color:var(--muted);font-weight:400}
+  .boardbar select{font-family:var(--font);font-size:12.5px;color:var(--ink);background:#fff;
+    border:2px solid var(--line);border-radius:999px;padding:5px 10px;margin-left:auto}
+  .boardbar select:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+
+  .closednote{background:#f4f1f8;border-radius:12px;padding:10px 12px;font-size:12.5px;
+    color:var(--muted);margin:0 0 14px;text-align:center}
+
+  /* ---- レス ---- */
+  .posts{margin:0}
+  .post{border-bottom:1px dotted var(--stitch);padding:9px 2px}
+  .post:last-child{border-bottom:0}
+  .post:target{background:#fff6f8;border-radius:10px}
+  .phead{font-size:11.5px;color:var(--muted);line-height:1.7;display:flex;
+    flex-wrap:wrap;align-items:baseline;gap:0 7px}
+  .phead .no{color:#a695b6;font-weight:700}
+  .phead .nm{color:var(--berry-dk);font-weight:700}
+  .phead .pid{font-size:11px;letter-spacing:.02em}
+  .pbody{margin:2px 0 0;font-size:14.5px;line-height:1.8;word-break:break-word}
+  .pbody .anc{color:var(--sage);font-weight:700;cursor:pointer;text-decoration:underline;
+    text-underline-offset:3px}
+  .pacts{display:flex;gap:12px;margin-top:2px}
+  .pacts{align-items:center}
+  .pacts button{background:none;border:0;padding:0;font-family:var(--font);font-size:11px;
+    color:#bdb2c9;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .pacts button:hover{color:var(--berry-dk)}
+  .pacts button:focus-visible{outline:2px solid var(--sage);outline-offset:2px;border-radius:4px}
+  /* へんしんは「つうほう」と同じ文字リンクのまま、色だけ目立たせています */
+  .pacts button.rep{color:var(--sage-dk);font-weight:700}
+  .pacts button.rep:hover{color:#4a7561}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:22px 0;margin:0}
+
+  /* ---- ページ送り ---- */
+  .pager{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+  .pager button{font-family:var(--font);font-size:12px;font-weight:700;color:var(--muted);
+    background:#fff;border:2px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer}
+  .pager button.on{background:var(--berry);border-color:var(--berry);color:#fff}
+  .pager button:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+
+  .savebar{display:flex;justify-content:center;margin-top:12px}
+  .savebar button{font-family:var(--font);font-size:12.5px;font-weight:700;color:var(--muted);
+    background:#fff;border:2px solid var(--line);border-radius:999px;padding:8px 18px;cursor:pointer}
+  .savebar button:hover{border-color:var(--berry);color:var(--berry-dk)}
+  .savebar button:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+
+  /* ---- かきこみ ---- */
+  .form-label{font-size:12px;color:var(--muted);display:block;margin:0 0 5px;letter-spacing:.04em}
+  .nm-input{width:100%;font-family:var(--font);font-size:14px;color:var(--ink);background:#fff;
+    border:2px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:12px}
+  .bd-input{width:100%;font-family:var(--font);font-size:15px;line-height:1.7;color:var(--ink);
+    background:#fff;border:2px solid var(--line);border-radius:14px;padding:11px 13px;resize:none}
+  .nm-input:focus,.bd-input:focus{outline:none;border-color:var(--berry)}
+  .bd-input.bad{border-color:var(--berry)}
+  .replychip{display:none;align-items:center;gap:8px;background:#f0f6f2;border-radius:999px;
+    padding:5px 12px;font-size:12px;color:#5c8a70;margin-bottom:10px;width:fit-content}
+  .replychip.show{display:flex}
+  .replychip button{background:none;border:0;font-family:var(--font);font-size:12px;
+    color:#5c8a70;cursor:pointer;text-decoration:underline}
+  .meta-row{display:flex;align-items:center;gap:10px;margin-top:7px}
+  .counter{font-size:11.5px;color:var(--muted);margin-left:auto}
+  .counter.over{color:var(--berry-dk);font-weight:700}
+  .warn{font-size:11.5px;color:var(--berry-dk);margin:6px 0 0;min-height:1.2em}
+  .send{width:100%;margin-top:12px;font-family:var(--font);font-size:15px;font-weight:700;
+    color:#fff;background:var(--berry);border:0;border-radius:999px;padding:12px;cursor:pointer;
+    box-shadow:0 5px 0 var(--berry-dk);transition:transform .1s}
+  .send:hover{background:var(--berry-dk)}
+  .send:active{transform:translateY(3px);box-shadow:0 2px 0 var(--berry-dk)}
+  .send:disabled{background:#e3d9ea;box-shadow:0 5px 0 #d3c7dc;cursor:default;transform:none}
+  .send:focus-visible{outline:3px solid var(--sage);outline-offset:3px}
+  .rule{font-size:11.5px;color:var(--muted);margin:10px 0 0;line-height:1.7}
+
+  /* ---- 画像の控え ---- */
+  .sheet{display:none;position:fixed;inset:0;background:rgba(60,45,75,.55);z-index:60;
+    align-items:center;justify-content:center;padding:20px}
+  .sheet.show{display:flex}
+  .sheet-inner{background:var(--surface);border-radius:18px;padding:18px;max-width:420px;
+    width:100%;max-height:86vh;overflow:auto;text-align:center}
+  .sheet-inner h2{font-size:15px;margin:0 0 10px}
+  .sheet-img{width:100%;height:auto;border-radius:12px}
+  .sheet-hint{font-size:12px;color:var(--muted);margin:10px 0 12px}
+  .sheet button{font-family:var(--font);font-size:13px;font-weight:700;color:var(--muted);
+    background:#fff;border:2px solid var(--line);border-radius:999px;padding:8px 20px;cursor:pointer}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 20px;border-radius:14px;font-size:14px;
+    font-weight:600;opacity:0;pointer-events:none;transition:all .25s;z-index:70;
+    box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:88vw;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  nav.links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin:0}
+  nav.links a{font-size:13px;color:var(--muted);text-decoration:underline;
+    text-underline-offset:4px;text-decoration-thickness:1px;transition:color .15s}
+  nav.links a:hover{color:var(--berry-dk)}
+  nav.links a:focus-visible{outline:2px solid var(--sage);outline-offset:3px;border-radius:4px}
+  footer{text-align:center;margin-top:34px}
+  footer .sitename{color:var(--muted);font-size:12px;margin:14px 0 0;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="title">ぬい掲示板<span class="dot">.</span></h1>
+    <p class="subtitle">ひらがなだけで、すきに書きこめます。</p>
+  </header>
+
+  <div id="banner" class="banner"></div>
+
+  <!-- Turnstile。初回訪問の匿名ログインのときだけ出ます。 -->
+  <div id="tsContainer" style="display:none;justify-content:center;margin-bottom:18px;"></div>
+
+  <section class="felt">
+    <div class="boardbar">
+      <p class="today" id="boardTitle">よみこみちゅう…<span class="cnt" id="boardCount"></span></p>
+      <select id="histSel" aria-label="板の日付をえらぶ"></select>
+    </div>
+
+    <p class="closednote" id="closedNote" style="display:none"></p>
+
+    <div class="posts" id="postList"><p class="empty">よみこみちゅう…</p></div>
+
+    <div class="pager" id="pager"></div>
+    <div class="savebar"><button id="saveImgBtn">この画面を画像で保存</button></div>
+  </section>
+
+  <section class="felt" id="formCard">
+    <div class="replychip" id="replyChip">
+      <span id="replyLabel"></span>
+      <button id="replyClear" type="button">やめる</button>
+    </div>
+
+    <label class="form-label" for="nameInput">なまえ（でふぉるとは「ななしのぬい」）</label>
+    <input id="nameInput" class="nm-input" type="text" maxlength="12" autocomplete="off"
+           placeholder="ななしのぬい" />
+
+    <label class="form-label" for="bodyInput">ほんぶん</label>
+    <textarea id="bodyInput" class="bd-input" rows="3" maxlength="120"
+              placeholder="ひらがなでどうぞ"></textarea>
+
+    <div class="meta-row">
+      <span class="counter" id="counter">0 / 100</span>
+    </div>
+    <p class="warn" id="warn"></p>
+
+    <button id="sendBtn" class="send" disabled>かきこむ</button>
+
+    <p class="rule">ひらがな・「ー」「、」「。」「！」「？」だけが使えます。100文字まで。
+    かきこんだものは消せません。あらしや、ひとをきずつける書きこみは消すことがあります。</p>
+  </section>
+
+  <footer>
+    <nav class="links">
+      <a href="index.html">ホーム</a>
+      <a href="about.html">このサイトについて</a>
+      <a href="news.html">お知らせ</a>
+      <a href="terms.html">利用規約</a>
+      <a href="privacy.html">プライバシーポリシー</a>
+    </nav>
+    <p class="sitename">ぬいについてのサイト</p>
+  </footer>
+</div>
+
+<div class="sheet" id="imgSheet" role="dialog" aria-modal="true" aria-label="板の画像">
+  <div class="sheet-inner">
+    <h2>ぬい掲示板</h2>
+    <img id="sheetImg" class="sheet-img" alt="板の画像" />
+    <p class="sheet-hint">画像を長押し（パソコンは右クリック）して保存してください。</p>
+    <button id="sheetCloseBtn">閉じる</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/dist/umd/supabase.js"
+  integrity="sha384-6foGJ1oz/y3anEo0BXRtTgBK1GvpnR0GbJZb0ijG+nBAJ4rYT+VqlD/9e3CSiFIA"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script>
+/* ============================================================
+   ぬい掲示板
+   ・投稿は post_message() という関数を通してのみ行われます。
+     文字種・文字数・レート制限・上限レス数の判定は、すべてサーバー側です。
+     このファイルの検証は「打ちながら気づけるように」するためのもので、
+     ここを書き換えても、通らないものは通りません。
+   ・本文に数字と記号が書けないため、アンカー（>>12）は本文ではなく
+     reply_to という別の項目として保存しています。
+   ============================================================ */
+const SUPABASE_URL = "https://xuekmypfzxszpmmqmfsl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_a75xUa9gRXrH1cLB5sdGsw_MJ_0VThq";
+const TURNSTILE_SITEKEY = "0x4AAAAAAD__N08vFGBCb_oY";
+
+const PER_PAGE = 50;
+const SITE_URL = "https://levelblue615.github.io/everyday-nui/";
+
+/* 使える文字。SQL 側の判定とそろえてあります。 */
+const RE_BODY = /^[ぁ-ゖゝゞー、。！？ 　]+$/;
+const RE_NAME = /^[ぁ-ゖゝゞー]+$/;
+const RE_BODY_CHAR = /[ぁ-ゖゝゞー、。！？ 　]/;
+const RE_NAME_CHAR = /[ぁ-ゖゝゞー]/;
+
+const $ = (id) => document.getElementById(id);
+let toastTimer;
+function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2400); }
+function banner(html){ const b=$("banner"); b.innerHTML=html; b.classList.add("show"); }
+
+let sb=null, myUid=null;
+let today=null, viewDate=null, page=0;
+let posts=[], boardsList=[], config={enabled:true,max_posts_per_day:300,notice:null};
+let replyTo=null, composing=false, sending=false;
+
+/* ---- Turnstile ---- */
+function getTurnstileToken(){
+  return new Promise((resolve, reject) => {
+    const c = $("tsContainer");
+    c.style.display = "flex";
+    const render = () => {
+      try {
+        window.turnstile.render(c, {
+          sitekey: TURNSTILE_SITEKEY,
+          appearance: "interaction-only",
+          callback: (t) => resolve(t),
+          "error-callback": () => reject(new Error("turnstile-error")),
+          "expired-callback": () => reject(new Error("turnstile-expired")),
+        });
+      } catch(e){ reject(e); }
+    };
+    if(window.turnstile && window.turnstile.render){ render(); return; }
+    let n=0;
+    const iv = setInterval(() => {
+      if(window.turnstile && window.turnstile.render){ clearInterval(iv); render(); }
+      else if(++n > 100){ clearInterval(iv); reject(new Error("turnstile-not-loaded")); }
+    }, 100);
+  });
+}
+function hideTurnstile(){ const c=$("tsContainer"); if(c) c.style.display="none"; }
+
+/* ---- 起動 ---- */
+async function init(){
+  if(!window.supabase){
+    banner("ライブラリの読み込みに失敗しました。ネットワークをご確認ください。");
+    return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let { data:{ session } } = await sb.auth.getSession();
+  if(!session){
+    let captchaToken;
+    try { captchaToken = await getTurnstileToken(); }
+    catch(e){
+      banner("人間確認（Turnstile）に失敗しました。ページを再読み込みしてください。");
+      return;
+    }
+    const { error } = await sb.auth.signInAnonymously({ options:{ captchaToken } });
+    hideTurnstile();
+    if(error){
+      banner("匿名ログインに失敗しました。しばらくしてからお試しください。");
+      return;
+    }
+  }
+  const { data:{ user } } = await sb.auth.getUser();
+  myUid = user ? user.id : null;
+
+  restoreName();
+  bindEvents();
+
+  const { data: d } = await sb.rpc("board_today");
+  today = d;
+
+  const q = new URLSearchParams(location.search);
+  viewDate = q.get("d") || today;
+  page = Math.max(0, (parseInt(q.get("p"), 10) || 1) - 1);
+
+  await loadConfig();
+  await loadBoards();
+  await loadPosts();
+}
+
+async function loadConfig(){
+  const { data } = await sb.from("board_config").select("enabled,max_posts_per_day,notice").eq("id",1).maybeSingle();
+  if(data) config = data;
+}
+
+async function loadBoards(){
+  const { data } = await sb.from("boards")
+    .select("board_date,post_count").order("board_date",{ ascending:false }).limit(90);
+  boardsList = data || [];
+  const sel = $("histSel");
+  sel.textContent = "";
+  const seen = new Set(boardsList.map(b => b.board_date));
+  if(!seen.has(today)) boardsList.unshift({ board_date: today, post_count: 0 });
+  boardsList.forEach(b => {
+    const o = document.createElement("option");
+    o.value = b.board_date;
+    o.textContent = (b.board_date === today ? "きょう " : "") + jpDate(b.board_date) + "（" + b.post_count + "）";
+    if(b.board_date === viewDate) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+async function loadPosts(){
+  const { data, error } = await sb.from("posts")
+    .select("id,no,name,body,reply_to,poster_id,created_at")
+    .eq("board_date", viewDate).order("no", { ascending:true });
+  if(error){ toast("よみこみに失敗しました"); return; }
+  posts = data || [];
+  const maxPage = Math.max(0, Math.ceil(posts.length / PER_PAGE) - 1);
+  if(page > maxPage) page = maxPage;
+  render();
+}
+
+/* ---- 表示 ---- */
+function jpDate(s){
+  const [y,m,d] = s.split("-").map(Number);
+  const w = "日月火水木金土"[new Date(y, m-1, d).getDay()];
+  return `${y}.${String(m).padStart(2,"0")}.${String(d).padStart(2,"0")}（${w}）`;
+}
+function hhmm(iso){
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+
+function render(){
+  $("boardTitle").firstChild.nodeValue = jpDate(viewDate) + " のいた ";
+  $("boardCount").textContent = posts.length + "／" + config.max_posts_per_day;
+
+  const isToday = (viewDate === today);
+  const full = posts.length >= config.max_posts_per_day;
+  const note = $("closedNote");
+  if(!isToday){
+    note.textContent = "このいたは、もうおわりました。かきこみは「きょうのいた」へどうぞ。";
+    note.style.display = "";
+  } else if(!config.enabled){
+    note.textContent = config.notice || "ただいま、かきこみをおやすみしています。";
+    note.style.display = "";
+  } else if(full){
+    note.textContent = "きょうのいたは、いっぱいになりました。またあしたね。";
+    note.style.display = "";
+  } else {
+    note.style.display = "none";
+  }
+  $("formCard").style.display = (isToday && config.enabled && !full) ? "" : "none";
+
+  const list = $("postList");
+  list.textContent = "";
+  if(posts.length === 0){
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = isToday ? "まだだれもいません。さいしょのひとになりませんか。" : "このいたには、なにもありませんでした。";
+    list.appendChild(p);
+    $("pager").textContent = "";
+    return;
+  }
+
+  const slice = posts.slice(page*PER_PAGE, (page+1)*PER_PAGE);
+  slice.forEach(p => list.appendChild(postNode(p)));
+  renderPager();
+}
+
+function postNode(p){
+  const el = document.createElement("div");
+  el.className = "post";
+  el.id = "r" + p.no;
+
+  const h = document.createElement("div");
+  h.className = "phead";
+  const add = (cls, txt) => { const s=document.createElement("span"); s.className=cls; s.textContent=txt; h.appendChild(s); };
+  add("no", p.no);
+  add("nm", p.name);
+  add("tm", hhmm(p.created_at));
+  add("pid", "ID:" + p.poster_id);
+  el.appendChild(h);
+
+  const b = document.createElement("p");
+  b.className = "pbody";
+  if(p.reply_to){
+    const a = document.createElement("span");
+    a.className = "anc";
+    a.textContent = ">>" + p.reply_to;
+    a.tabIndex = 0;
+    a.addEventListener("click", () => jumpTo(p.reply_to));
+    a.addEventListener("keydown", (e) => { if(e.key==="Enter") jumpTo(p.reply_to); });
+    b.appendChild(a);
+    b.appendChild(document.createTextNode(" "));
+  }
+  b.appendChild(document.createTextNode(p.body));
+  el.appendChild(b);
+
+  const acts = document.createElement("div");
+  acts.className = "pacts";
+  if(viewDate === today && config.enabled){
+    const r = document.createElement("button");
+    r.type = "button"; r.className = "rep"; r.textContent = "へんしん";
+    r.addEventListener("click", () => setReply(p.no));
+    acts.appendChild(r);
+  }
+  const rep = document.createElement("button");
+  rep.type = "button"; rep.textContent = "つうほう";
+  rep.addEventListener("click", () => reportPost(p.id, p.no));
+  acts.appendChild(rep);
+  el.appendChild(acts);
+
+  return el;
+}
+
+function renderPager(){
+  const pg = $("pager");
+  pg.textContent = "";
+  const n = Math.ceil(posts.length / PER_PAGE);
+  if(n <= 1) return;
+  for(let i=0;i<n;i++){
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = (i*PER_PAGE+1) + "-" + Math.min((i+1)*PER_PAGE, posts.length);
+    if(i === page) b.classList.add("on");
+    b.addEventListener("click", () => { page = i; render(); window.scrollTo({top:0,behavior:"smooth"}); });
+    pg.appendChild(b);
+  }
+}
+
+function jumpTo(no){
+  const idx = posts.findIndex(p => p.no === no);
+  if(idx < 0){ toast("そのレスは見つかりませんでした"); return; }
+  const target = Math.floor(idx / PER_PAGE);
+  if(target !== page){ page = target; render(); }
+  const el = $("r" + no);
+  if(el){ el.scrollIntoView({ behavior:"smooth", block:"center" }); location.hash = "r" + no; }
+}
+
+function setReply(no){
+  replyTo = no;
+  $("replyLabel").textContent = ">>" + no + " にへんしん";
+  $("replyChip").classList.add("show");
+  $("bodyInput").focus();
+}
+function clearReply(){
+  replyTo = null;
+  $("replyChip").classList.remove("show");
+}
+
+/* ---- 入力の見はり ----
+   日本語入力の変換中はローマ字が入るので、変換が確定するまで警告を出しません。 */
+function checkInput(){
+  // 改行はサーバー側で落とされるので、入力の時点で空白に変えておきます。
+  const ta = $("bodyInput");
+  if(/[\r\n]/.test(ta.value)){
+    const pos = ta.selectionStart;
+    ta.value = ta.value.replace(/[\r\n]+/g, " ");
+    try { ta.setSelectionRange(pos, pos); } catch(e){}
+  }
+  const body = $("bodyInput").value;
+  const name = $("nameInput").value;
+  const len = [...body.trim()].length;
+  const c = $("counter");
+  c.textContent = len + " / 100";
+  c.classList.toggle("over", len > 100);
+
+  let msg = "";
+  if(!composing){
+    if(len > 100){
+      msg = "100文字をこえています。";
+    } else if(body.trim() && !RE_BODY.test(body.trim())){
+      const bad = [...body.trim()].filter(ch => !RE_BODY_CHAR.test(ch));
+      msg = "つかえない文字があります：" + [...new Set(bad)].slice(0,8).join(" ");
+    } else if(name.trim() && !RE_NAME.test(name.trim())){
+      const bad = [...name.trim()].filter(ch => !RE_NAME_CHAR.test(ch));
+      msg = "なまえにつかえない文字があります：" + [...new Set(bad)].slice(0,8).join(" ");
+    }
+  }
+  $("warn").textContent = msg;
+  $("bodyInput").classList.toggle("bad", !!msg && len > 0);
+  $("sendBtn").disabled = sending || !!msg || len === 0 || len > 100;
+}
+
+/* ---- かきこむ ---- */
+const ERR = {
+  "board-closed":      "ただいま、かきこみをおやすみしています。",
+  "board-full":        "きょうのいたは、いっぱいになりました。",
+  "name-too-long":     "なまえは12文字までです。",
+  "name-not-hiragana": "なまえは、ひらがなだけで書いてください。",
+  "body-empty":        "なにか書いてください。",
+  "body-too-long":     "100文字までです。",
+  "body-not-hiragana": "ひらがなだけで書いてください。",
+  "body-repetitive":   "おなじ文字がつづきすぎています。",
+  "too-fast":          "つづけてのかきこみは、30びょうまってください。",
+  "daily-limit":       "きょうのかきこみは、ここまでです。またあしたね。",
+  "duplicate":         "おなじことを、きょうもう書いています。",
+  "not-signed-in":     "よみこみ中です。すこし待ってからお試しください。",
+};
+
+async function send(){
+  if(sending) return;
+  const body = $("bodyInput").value.trim();
+  const name = $("nameInput").value.trim();
+  if(!body) return;
+
+  sending = true; $("sendBtn").disabled = true; $("sendBtn").textContent = "おくっています…";
+  const { data, error } = await sb.rpc("post_message", {
+    p_name: name, p_body: body, p_reply_to: replyTo,
+  });
+  sending = false; $("sendBtn").textContent = "かきこむ";
+
+  if(error){
+    const key = Object.keys(ERR).find(k => (error.message || "").includes(k));
+    toast(key ? ERR[key] : "かきこみに失敗しました。すこし待ってからお試しください。");
+    checkInput();
+    return;
+  }
+
+  $("bodyInput").value = "";
+  clearReply();
+  saveName(name);
+  checkInput();
+  await loadPosts();
+  page = Math.max(0, Math.ceil(posts.length / PER_PAGE) - 1);
+  render();
+  const el = $("r" + (data && data.no));
+  if(el) el.scrollIntoView({ behavior:"smooth", block:"center" });
+  toast("かきこみました");
+}
+
+async function reportPost(id, no){
+  if(!confirm(">>" + no + " を通報しますか？\n運営者が内容を確認します。")) return;
+  const { error } = await sb.rpc("report_post", { p_post_id: id });
+  if(error){
+    toast((error.message || "").includes("report-limit")
+      ? "通報が多すぎます。しばらく待ってからお試しください。"
+      : "通報できませんでした。");
+    return;
+  }
+  toast("通報しました。ありがとうございます。");
+}
+
+/* ---- なまえをおぼえておく（この端末の中だけ） ---- */
+function saveName(n){
+  try { n ? localStorage.setItem("nui-board-name", n) : localStorage.removeItem("nui-board-name"); }
+  catch(e){}
+}
+function restoreName(){
+  try { const n = localStorage.getItem("nui-board-name"); if(n) $("nameInput").value = n; }
+  catch(e){}
+}
+
+/* ============================================================
+   画像づくり
+   画面の切り取りではなく、canvas に描き起こしています。
+   いま見えている50件ぶんだけを1枚にします。
+   ============================================================ */
+function wrapText(ctx, text, maxW){
+  const out = [];
+  let line = "";
+  for(const ch of text){
+    if(ctx.measureText(line + ch).width > maxW && line){ out.push(line); line = ch; }
+    else line += ch;
+  }
+  if(line) out.push(line);
+  return out;
+}
+
+function renderCanvas(){
+  const slice = posts.slice(page*PER_PAGE, (page+1)*PER_PAGE);
+  if(slice.length === 0) return null;
+
+  const S = 2, W = 720, PAD = 40, BODY_W = W - PAD*2;
+  const measure = document.createElement("canvas").getContext("2d");
+  measure.font = '400 22px "M PLUS Rounded 1c", sans-serif';
+
+  const items = slice.map(p => {
+    const prefix = p.reply_to ? ">>" + p.reply_to + " " : "";
+    return { p, lines: wrapText(measure, prefix + p.body, BODY_W) };
+  });
+
+  let H = 150;
+  items.forEach(it => { H += 26 + it.lines.length * 34 + 22; });
+  H += 90;
+
+  const cv = document.createElement("canvas");
+  cv.width = W * S; cv.height = H * S;
+  const ctx = cv.getContext("2d");
+  ctx.scale(S, S);
+
+  ctx.fillStyle = "#fffdf9";
+  ctx.fillRect(0, 0, W, H);
+
+  // 見出し
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#4c4356";
+  ctx.font = '800 30px "M PLUS Rounded 1c", sans-serif';
+  ctx.fillText("ぬい掲示板", PAD, 62);
+  ctx.fillStyle = "#9a8fa8";
+  ctx.font = '500 20px "M PLUS Rounded 1c", sans-serif';
+  ctx.fillText(jpDate(viewDate) + "　" + (page*PER_PAGE+1) + "-" + (page*PER_PAGE+slice.length), PAD, 94);
+
+  ctx.strokeStyle = "#d9c2e4"; ctx.lineWidth = 2;
+  ctx.setLineDash([4, 5]);
+  ctx.beginPath(); ctx.moveTo(PAD, 118); ctx.lineTo(W-PAD, 118); ctx.stroke();
+
+  let y = 150;
+  items.forEach(it => {
+    const p = it.p;
+    ctx.setLineDash([]);
+    // 見出し行
+    let x = PAD;
+    ctx.font = '700 17px "M PLUS Rounded 1c", sans-serif';
+    ctx.fillStyle = "#c3b8cf";
+    ctx.fillText(String(p.no), x, y); x += ctx.measureText(String(p.no)).width + 10;
+    ctx.fillStyle = "#cf5c78";
+    ctx.fillText(p.name, x, y); x += ctx.measureText(p.name).width + 10;
+    ctx.font = '400 16px "M PLUS Rounded 1c", sans-serif';
+    ctx.fillStyle = "#9a8fa8";
+    const tail = hhmm(p.created_at) + "  ID:" + p.poster_id;
+    ctx.fillText(tail, x, y);
+    y += 26;
+
+    // 本文
+    ctx.font = '400 22px "M PLUS Rounded 1c", sans-serif';
+    it.lines.forEach((ln, i) => {
+      if(i === 0 && p.reply_to){
+        const anc = ">>" + p.reply_to;
+        ctx.fillStyle = "#8ab59b";
+        ctx.fillText(anc, PAD, y + 24);
+        const w = ctx.measureText(anc + " ").width;
+        ctx.fillStyle = "#4c4356";
+        ctx.fillText(ln.slice(anc.length + 1), PAD + w, y + 24);
+      } else {
+        ctx.fillStyle = "#4c4356";
+        ctx.fillText(ln, PAD, y + 24);
+      }
+      y += 34;
+    });
+
+    y += 10;
+    ctx.strokeStyle = "#e7dced"; ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W-PAD, y); ctx.stroke();
+    y += 12;
+  });
+
+  // 足もと
+  ctx.setLineDash([]);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#9a8fa8";
+  ctx.font = '500 18px "M PLUS Rounded 1c", sans-serif';
+  ctx.fillText("ぬい掲示板", W/2, H - 52);
+  ctx.font = '400 16px "M PLUS Rounded 1c", sans-serif';
+  ctx.fillText(SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, ""), W/2, H - 26);
+
+  return cv;
+}
+
+async function saveImage(){
+  const cv = renderCanvas();
+  if(!cv){ toast("まだなにもありません"); return; }
+  const blob = await new Promise(r => cv.toBlob(r, "image/png"));
+  if(!blob){ toast("画像をつくれませんでした"); return; }
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ぬい掲示板_" + viewDate + "_" + (page*PER_PAGE+1) + ".png";
+    document.body.appendChild(a); a.click(); a.remove();
+    toast("画像を保存しました");
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch(e){
+    $("sheetImg").src = url;
+    $("imgSheet").classList.add("show");
+  }
+}
+
+/* ---- イベント ---- */
+function bindEvents(){
+  $("bodyInput").addEventListener("input", checkInput);
+  $("nameInput").addEventListener("input", checkInput);
+  ["bodyInput","nameInput"].forEach(id => {
+    $(id).addEventListener("compositionstart", () => { composing = true; });
+    $(id).addEventListener("compositionend", () => { composing = false; checkInput(); });
+  });
+  $("sendBtn").addEventListener("click", send);
+  $("replyClear").addEventListener("click", clearReply);
+  $("saveImgBtn").addEventListener("click", saveImage);
+  $("sheetCloseBtn").addEventListener("click", () => $("imgSheet").classList.remove("show"));
+  $("histSel").addEventListener("change", async (e) => {
+    viewDate = e.target.value; page = 0; clearReply();
+    history.replaceState(null, "", "?d=" + viewDate);
+    await loadPosts();
+    window.scrollTo({ top:0, behavior:"smooth" });
+  });
+  $("bodyInput").addEventListener("keydown", (e) => {
+    if((e.metaKey || e.ctrlKey) && e.key === "Enter" && !$("sendBtn").disabled) send();
+  });
+}
+
+/* フォントが来てから画像を描けるように、先に読み込んでおきます */
+if(document.fonts && document.fonts.load){
+  Promise.all([
+    document.fonts.load('400 22px "M PLUS Rounded 1c"'),
+    document.fonts.load('700 17px "M PLUS Rounded 1c"'),
+    document.fonts.load('800 30px "M PLUS Rounded 1c"'),
+  ]).catch(()=>{});
+}
+
+init();
+</script>
+</body>
+</html>
