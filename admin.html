@@ -261,6 +261,33 @@
     </section>
 
     <section class="card">
+      <h2>ぬい掲示板<span class="n" id="boardStat"></span></h2>
+      <p class="msg" id="boardMsg"></p>
+
+      <div class="stats" id="boardStats">
+        <div class="stat"><span class="k">読み込み中</span><span class="v">—</span></div>
+      </div>
+
+      <div class="row-btns" style="margin-top:12px">
+        <button class="btn ghost" id="boardToggleBtn">かきこみを止める</button>
+        <button class="btn ghost" id="boardReloadBtn">読み直す</button>
+      </div>
+      <p class="hint">「止める」を押すと、その時点から新しいかきこみを一切受け付けなくなります。すでにあるレスは残り、読むことはできます。荒らしが続くときの緊急用です。</p>
+
+      <h3 style="font-size:13px;margin:18px 0 6px">通報されたレス</h3>
+      <div class="list" id="reportList"><p class="empty">読み込み中…</p></div>
+      <p class="hint">通報の多い順に並びます。自動では消しません。<strong>隠す</strong>は画面から見えなくするだけで、あとから戻せます。<strong>消す</strong>はデータごと削除するので戻せません。問題がなければ<strong>通報をクリア</strong>すると一覧から外れます。</p>
+
+      <h3 style="font-size:13px;margin:18px 0 6px">いたを見る</h3>
+      <div class="row-btns" style="margin-bottom:10px">
+        <input id="boardDateInput" type="date" style="max-width:190px" />
+        <button class="btn ghost" id="boardViewBtn">この日を見る</button>
+      </div>
+      <div class="list" id="boardPostList"><p class="empty">日付をえらんでください。</p></div>
+      <p class="hint">通報が上がっていないレスも、ここから隠したり消したりできます。新しいものが上に出ます。</p>
+    </section>
+
+    <section class="card">
       <h2>観察文をふやす<span class="n" id="behCount"></span></h2>
       <p class="msg" id="behMsg"></p>
       <div class="field">
@@ -471,6 +498,7 @@ async function enterAdmin(){
   await loadStats();
   await loadNews();
   await loadBehaviors();
+  await loadBoard();
 }
 
 async function logout(){
@@ -761,6 +789,165 @@ function copyBehaviors(){
     .catch(() => toast("コピーできませんでした"));
 }
 
+/* ============================================================
+   ぬい掲示板
+   ・レスを消すのではなく「隠す」だけにしています。あとから戻せます。
+   ・通報が集まっても自動では隠しません。数人で示し合わせれば正常な投稿を
+     消せてしまい、荒らしの道具になるためです。判断は人が行います。
+   ============================================================ */
+let boardCfg = null;
+
+async function loadBoard(){
+  const grid = $("boardStats");
+  const { data, error } = await sb.rpc("admin_board_stats");
+  if(error || !data){
+    grid.textContent = "";
+    grid.appendChild(statCell("集計を読み込めませんでした", 0, "", false));
+    return;
+  }
+  boardCfg = data;
+
+  grid.textContent = "";
+  grid.appendChild(statCell("きょうのレス", data.posts_today, "件", true,
+    "上限" + data.max_per_day));
+  grid.appendChild(statCell("通報あり", data.reports_open, "件", true));
+  grid.appendChild(statCell("これまでのレス", data.posts_total, "件", false));
+  grid.appendChild(statCell("いたの数", data.boards_total, "日", false));
+  grid.appendChild(statCell("隠したレス", data.posts_hidden, "件", false));
+  grid.appendChild(statCell("かきこみ", data.enabled ? "受付中" : "停止中", "", false));
+
+  $("boardStat").textContent = data.enabled ? "" : "停止中";
+  $("boardToggleBtn").textContent = data.enabled ? "かきこみを止める" : "かきこみを再開する";
+
+  await loadReports();
+}
+
+async function loadReports(){
+  const el = $("reportList");
+  const { data, error } = await sb.rpc("admin_reports", { p_limit: 50 });
+  if(error){ el.innerHTML = '<p class="empty">読み込めませんでした。</p>'; return; }
+  const rows = data || [];
+  el.textContent = "";
+  if(rows.length === 0){
+    el.innerHTML = '<p class="empty">通報はありません。</p>';
+    return;
+  }
+  rows.forEach(r => el.appendChild(reportRow(r)));
+}
+
+function reportRow(r, inBoardList){
+  const row = document.createElement("div"); row.className = "entry";
+  const body = document.createElement("div"); body.className = "body";
+
+  const meta = document.createElement("div"); meta.className = "meta";
+  const add = (txt) => { const sp = document.createElement("span"); sp.textContent = txt; meta.appendChild(sp); };
+  add(dotted(r.board_date) + " >>" + r.no);
+  add("ID:" + r.poster_id);
+  if(Number(r.report_count) > 0) add("通報 " + r.report_count + "件");
+  if(r.hidden) add("（隠しています）");
+  body.appendChild(meta);
+
+  const p = document.createElement("p"); p.className = "txt";
+  p.textContent = (r.reply_to ? ">>" + r.reply_to + " " : "") + r.name + "：" + r.body;
+  if(r.hidden) p.style.opacity = ".5";
+  body.appendChild(p);
+  row.appendChild(body);
+
+  const acts = document.createElement("div"); acts.className = "acts";
+
+  const hide = document.createElement("button");
+  hide.className = "iconbtn" + (r.hidden ? "" : " del"); hide.type = "button";
+  hide.textContent = r.hidden ? "もどす" : "隠す";
+  hide.addEventListener("click", () => hidePost(r.post_id, !r.hidden));
+  acts.appendChild(hide);
+
+  const del = document.createElement("button");
+  del.className = "iconbtn del"; del.type = "button";
+  del.textContent = "消す";
+  del.addEventListener("click", () => deletePost(r.post_id, r.no));
+  acts.appendChild(del);
+
+  if(!inBoardList && Number(r.report_count) > 0){
+    const ok = document.createElement("button");
+    ok.className = "iconbtn"; ok.type = "button";
+    ok.textContent = "通報をクリア";
+    ok.addEventListener("click", () => dismissReports(r.post_id));
+    acts.appendChild(ok);
+  }
+
+  if(!r.hidden){
+    const all = document.createElement("button");
+    all.className = "iconbtn del"; all.type = "button";
+    all.textContent = "このIDをまとめて隠す";
+    all.addEventListener("click", () => hideByPoster(r.board_date, r.poster_id));
+    acts.appendChild(all);
+  }
+
+  row.appendChild(acts);
+  return row;
+}
+
+async function deletePost(id, no){
+  if(!confirm(">>" + no + " をデータごと削除します。\n\nこの操作は取り消せません。\n見えなくするだけでよければ「隠す」を使ってください。\n\n本当に削除しますか。")) return;
+  const { error } = await sb.rpc("admin_delete_post", { p_post_id: id });
+  if(error){ toast("削除できませんでした"); return; }
+  await loadBoard();
+  if(shownDate) await loadBoardPosts(shownDate);
+  toast("削除しました");
+}
+
+async function dismissReports(id){
+  const { error } = await sb.rpc("admin_dismiss_reports", { p_post_id: id });
+  if(error){ toast("できませんでした"); return; }
+  await loadBoard();
+  toast("通報をクリアしました");
+}
+
+/* ---- ある日の板をまとめて見る ---- */
+let shownDate = null;
+
+async function loadBoardPosts(date){
+  const el = $("boardPostList");
+  el.innerHTML = '<p class="empty">読み込み中…</p>';
+  const { data, error } = await sb.rpc("admin_board_posts", { p_board_date: date || null });
+  if(error){ el.innerHTML = '<p class="empty">読み込めませんでした。</p>'; return; }
+  shownDate = date || null;
+  const rows = data || [];
+  el.textContent = "";
+  if(rows.length === 0){
+    el.innerHTML = '<p class="empty">この日は書きこみがありません。</p>';
+    return;
+  }
+  rows.forEach(r => el.appendChild(reportRow(r, true)));
+}
+
+async function hidePost(id, hidden){
+  const { error } = await sb.rpc("admin_hide_post", { p_post_id: id, p_hidden: hidden });
+  if(error){ toast("できませんでした"); return; }
+  await loadBoard();
+  if(shownDate !== null) await loadBoardPosts(shownDate);
+  toast(hidden ? "隠しました" : "もどしました");
+}
+
+async function hideByPoster(date, pid){
+  if(!confirm(dotted(date) + " の ID:" + pid + " のレスを、すべて隠します。よろしいですか。")) return;
+  const { data, error } = await sb.rpc("admin_hide_by_poster", { p_board_date: date, p_poster_id: pid });
+  if(error){ toast("できませんでした"); return; }
+  await loadBoard();
+  if(shownDate !== null) await loadBoardPosts(shownDate);
+  toast((data && data.hidden ? data.hidden : 0) + "件を隠しました");
+}
+
+async function toggleBoard(){
+  if(!boardCfg) return;
+  const next = !boardCfg.enabled;
+  if(next === false && !confirm("かきこみを止めます。読むことはできますが、新しいレスは一切受け付けなくなります。よろしいですか。")) return;
+  const { error } = await sb.from("board_config").update({ enabled: next }).eq("id", 1);
+  if(error){ msg("boardMsg", "変更できませんでした。", "err"); return; }
+  msg("boardMsg", next ? "かきこみを再開しました。" : "かきこみを止めました。", "ok");
+  await loadBoard();
+}
+
 /* ---- events ---- */
 function bindEvents(){
   $("loginBtn").addEventListener("click", login);
@@ -775,6 +962,10 @@ function bindEvents(){
   });
   $("nSaveBtn").addEventListener("click", saveNews);
   $("nCancelBtn").addEventListener("click", resetNewsForm);
+
+  $("boardToggleBtn").addEventListener("click", toggleBoard);
+  $("boardReloadBtn").addEventListener("click", loadBoard);
+  $("boardViewBtn").addEventListener("click", () => loadBoardPosts($("boardDateInput").value || null));
 
   $("bAddBtn").addEventListener("click", addBehaviors);
   $("bSearch").addEventListener("input", renderBehaviors);
