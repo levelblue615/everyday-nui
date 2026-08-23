@@ -20,7 +20,8 @@
 <style>
   :root {
     --bg:#efeaf6; --bg-2:#f6f1f9; --surface:#fffdf9; --ink:#4c4356; --muted:#9a8fa8;
-    --berry:#e5738e; --berry-dk:#cf5c78; --sage:#8ab59b; --sage-dk:#6d9c82; --stitch:#d9c2e4;
+    --berry:#e5738e; --berry-dk:#cf5c78; --sage:#8ab59b; --sage-dk:#6d9c82;
+    --plum:#a98bc9; --plum-dk:#8566a8; --stitch:#d9c2e4;
     --line:#e7dced; --radius:22px; --shadow:0 10px 30px rgba(90,60,110,.10);
     --font:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
   }
@@ -68,6 +69,10 @@
   .card.sched .card-go{color:var(--sage-dk)}
   .card.sched:hover::after{border-color:var(--sage)}
   /* お知らせは読み物なので、上の2つより控えめにしています。 */
+  .card.board .card-name{color:var(--plum-dk)}
+  .card.board .card-go{color:var(--plum-dk)}
+  .card.board:hover::after{border-color:var(--plum)}
+
   .card.news{padding:20px 24px 18px}
   .card.news .card-name{color:var(--muted);font-size:18px}
   .card.news .card-desc{font-size:13.5px;color:var(--muted)}
@@ -106,6 +111,12 @@
       <p class="card-name">ぬいスケジュール</p>
       <p class="card-desc">ぬいの1日の予定表をつくれます。時刻としていることを書き込んで、そのまま画像として保存できます。</p>
       <p class="card-go">つくる<span class="arrow">→</span></p>
+    </a>
+
+    <a class="card board" href="board.html">
+      <p class="card-name">ぬい掲示板</p>
+      <p class="card-desc">ひらがなだけで書きこめる、みんなの掲示板です。いたは毎日あたらしくなります。</p>
+      <p class="card-go">のぞく<span class="arrow">→</span></p>
     </a>
 
     <a class="card news" href="news.html">
