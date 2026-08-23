@@ -86,6 +86,18 @@
 
   /* サンプルのスケジュール表。schedule.html がつくる画像に合わせています。 */
   .sample.sched{padding:22px 20px 18px;text-align:left}
+  .steps li code{background:#f4eff8;border-radius:5px;padding:1px 6px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  .sample.board{padding:18px 18px 14px;text-align:left}
+  .bp{border-bottom:1px dotted #d9c2e4;padding:7px 0}
+  .bp:last-of-type{border-bottom:0}
+  .bh{font-size:11.5px;color:#9a8fa8;display:flex;flex-wrap:wrap;gap:0 7px;align-items:baseline}
+  .bh .bn{color:#a695b6;font-weight:700}
+  .bh .bnm{color:var(--berry-dk);font-weight:700}
+  .bb{margin:2px 0 0;font-size:14px;line-height:1.75;color:var(--ink)}
+  .bb .ba{color:#5f9179;font-weight:700}
+
   .sch-foot{margin:14px 0 0;text-align:center;font-size:12px;font-weight:800;
     color:var(--berry);letter-spacing:.06em;position:relative}
   table.sch{width:100%;border-collapse:collapse;position:relative}
@@ -151,6 +163,7 @@
     <ul class="feats">
       <li><a href="diary.html">ぬい観察日記</a>：名前を入れると、「今日の様子」が一文だけ届きます。1日1回。</li>
       <li><a href="schedule.html">ぬいスケジュール</a>：ぬいの1日の予定表を作成できます。何度でも。</li>
+      <li><a href="board.html">ぬい掲示板</a>：ひらがなだけで書きこめる掲示板です。いたは毎日あたらしくなります。</li>
     </ul>
   </section>
 
@@ -211,6 +224,54 @@
     <h3>しくみ</h3>
     <div class="how">
       <p>こちらは<strong>書いた内容を運営者のサーバーに送りません</strong>。入力中の内容はブラウザの中だけに保存され、画像もブラウザの中でつくられます。観察日記とちがって匿名IDも使いません。</p>
+    </div>
+  </section>
+
+  <section class="felt">
+    <h2><span class="mark">◆</span>ぬい掲示板</h2>
+    <p><strong>ひらがなだけで書きこめる、みんなの掲示板です。</strong>だれが書いたかはわかりません。何を書くかは自由です。</p>
+
+    <div class="sample board">
+      <div class="bp">
+        <div class="bh"><span class="bn">1</span><span class="bnm">ななしのぬい</span><span>08:12</span><span>ID:ku3Xq2</span></div>
+        <p class="bb">おはよう　きょうもいいてんきだね</p>
+      </div>
+      <div class="bp">
+        <div class="bh"><span class="bn">2</span><span class="bnm">もこ</span><span>08:20</span><span>ID:mo7Za1</span></div>
+        <p class="bb"><span class="ba">&gt;&gt;1</span> おはよう　まどべであたたまってます</p>
+      </div>
+      <div class="bp">
+        <div class="bh"><span class="bn">3</span><span class="bnm">ななしのぬい</span><span>09:01</span><span>ID:az4Pk9</span></div>
+        <p class="bb">せんたくきのうえがいちばんすきです。</p>
+      </div>
+      <p class="sch-foot">ぬい掲示板</p>
+    </div>
+
+    <h3>使い方</h3>
+    <ol class="steps">
+      <li><span>「ほんぶん」の欄に、ひらがなで書きます。使えるのはひらがなと「ー」「、」「。」「！」「？」だけ。1回100文字までです。</span></li>
+      <li><span>「なまえ」は空のままでかまいません。そのときは「ななしのぬい」になります。名前もひらがなだけ、12文字までです。</span></li>
+      <li><span>だれかの書きこみに返したいときは、その下の<strong>「へんしん」</strong>を押します。<code>&gt;&gt;1</code> のような印が自動でつきます。数字は自分では打てないので、かならずこのボタンを使ってください。</span></li>
+      <li><span>「かきこむ」を押すと、すぐにみんなに見える場所に出ます。</span></li>
+    </ol>
+
+    <h3>いたは毎日かわります</h3>
+    <p>掲示板は<strong>日ごとに新しくなります</strong>。書きこめるのは「きょうのいた」だけで、きのうまでのいたは読むことができます。右上の日付を選ぶと、過去のいたに移動できます。</p>
+    <p>1日にたまる書きこみは300件までです。それを超えた日は、その日はもう書きこめません。</p>
+
+    <h3>IDについて</h3>
+    <div class="how">
+      <p>書きこみには <code>ID:aB3xY9</code> のような印がつきます。<strong>同じ日のあいだは、同じ人から同じIDが出ます。</strong>日付がかわると別のIDに変わります。だれなのかを知ることはできません。</p>
+    </div>
+
+    <h3>画像で残せます</h3>
+    <p>「この画面を画像で保存」を押すと、いま見えている書きこみが1枚の画像になります。<strong>ほかの人の書きこみもいっしょに写ります</strong>ので、SNSなどに載せるときは気をつけてください。</p>
+
+    <h3>気をつけてほしいこと</h3>
+    <div class="how">
+      <p><strong>一度かきこんだものは、自分で消したり直したりできません。</strong>書く前に読み返してください。</p>
+      <p>だれでも読める場所です。本名や住所など、知られたくないことは書かないでください。</p>
+      <p>こまった書きこみを見つけたら、その下の「つうほう」を押してください。運営者が確認します。人をきずつける書きこみや、あらしは、こちらで見えなくすることがあります。</p>
     </div>
   </section>
 
