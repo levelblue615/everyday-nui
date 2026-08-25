@@ -72,6 +72,11 @@
     flex-wrap:wrap;align-items:baseline;gap:0 7px}
   .phead .no{color:#a695b6;font-weight:700}
   .phead .nm{color:var(--berry-dk);font-weight:700}
+  /* ---- 運営の印。この印はサーバーが付けるもので、偽造できません ---- */
+  .post.ofc{background:#fff6f8;border-radius:12px;padding:9px 10px}
+  .phead .badge{font-size:10px;font-weight:700;letter-spacing:.06em;color:#fff;
+    background:var(--berry);border-radius:999px;padding:1px 8px;line-height:1.7}
+
   /* ---- 日付のくぎり。板が何日かにわたるので、変わり目に入れます ---- */
   .daysep{display:flex;align-items:center;gap:9px;margin:14px 0 4px}
   .daysep::before,.daysep::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -204,6 +209,7 @@
     <button id="sendBtn" class="send" disabled>かきこむ</button>
 
     <p class="rule">ひらがな・「ー」「、」「。」「！」「？」だけが使えます。100文字まで。
+    <strong>うんえいからの書きこみには、なまえのよこに「うんえい」の印がつきます。</strong>この印は、なまえに書いてもつきません。
     いたは300件たまるとおわり、つぎのいたがはじまります。
     かきこんだものは消せません。あらしや、ひとをきずつける書きこみは消すことがあります。</p>
   </section>
@@ -364,7 +370,7 @@ async function loadBoards(){
 async function loadPosts(){
   if(viewBoard == null){ posts = []; page = 0; render(); return; }
   const { data, error } = await sb.from("posts")
-    .select("id,no,name,body,reply_to,created_at")
+    .select("id,no,name,body,reply_to,official,created_at")
     .eq("board_id", viewBoard).order("no", { ascending:true });
   if(error){ toast("よみこみに失敗しました"); return; }
   posts = data || [];
@@ -450,7 +456,7 @@ function daySep(iso){
 
 function postNode(p){
   const el = document.createElement("div");
-  el.className = "post";
+  el.className = "post" + (p.official ? " ofc" : "");
   el.id = "r" + p.no;
 
   const h = document.createElement("div");
@@ -458,6 +464,7 @@ function postNode(p){
   const add = (cls, txt) => { const s=document.createElement("span"); s.className=cls; s.textContent=txt; h.appendChild(s); };
   add("no", p.no);
   add("nm", p.name);
+  if(p.official) add("badge", "うんえい");
   add("tm", hhmm(p.created_at));
   el.appendChild(h);
 
@@ -574,6 +581,7 @@ const ERR = {
   "board-closed":      "ただいま、かきこみをおやすみしています。",
   "name-too-long":     "なまえは12文字までです。",
   "name-not-hiragana": "なまえは、ひらがなだけで書いてください。",
+  "name-reserved":     "そのなまえは、うんえいがつかうのでえらべません。",
   "body-empty":        "なにか書いてください。",
   "body-too-long":     "100文字までです。",
   "body-not-hiragana": "ひらがなだけで書いてください。",
@@ -712,6 +720,16 @@ function renderCanvas(){
     ctx.fillText(String(p.no), x, y); x += ctx.measureText(String(p.no)).width + 10;
     ctx.fillStyle = "#cf5c78";
     ctx.fillText(p.name, x, y); x += ctx.measureText(p.name).width + 10;
+    if(p.official){
+      ctx.font = '700 14px "M PLUS Rounded 1c", sans-serif';
+      const bw = ctx.measureText("うんえい").width + 16;
+      ctx.fillStyle = "#e5738e";
+      if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(x, y - 13, bw, 19, 9); ctx.fill(); }
+      else ctx.fillRect(x, y - 13, bw, 19);
+      ctx.fillStyle = "#fff";
+      ctx.fillText("うんえい", x + 8, y);
+      x += bw + 10;
+    }
     ctx.font = '400 16px "M PLUS Rounded 1c", sans-serif';
     ctx.fillStyle = "#9a8fa8";
     const tail = md(p.created_at) + " " + hhmm(p.created_at);
