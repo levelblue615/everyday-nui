@@ -275,6 +275,22 @@
       <p class="hint">「止める」を押すと、その時点から新しいかきこみを一切受け付けなくなります。すでにあるレスは残り、読むことはできます。荒らしが続くときの緊急用です。</p>
       <p class="hint">いたは上限に達すると自動で次にうつります。手で切り替える操作はありません。</p>
 
+      <h3 style="font-size:13px;margin:18px 0 6px">運営として書きこむ</h3>
+      <div class="field">
+        <label for="opName">なまえ（空なら「うんえい」）</label>
+        <input id="opName" type="text" maxlength="12" placeholder="うんえい" style="max-width:230px" />
+      </div>
+      <div class="field">
+        <label for="opBody">ほんぶん（ひらがな・100文字まで）</label>
+        <textarea id="opBody" rows="3" placeholder="ひらがなでどうぞ"></textarea>
+        <p class="hint" id="opCount">0 / 100</p>
+      </div>
+      <div class="row-btns">
+        <button class="btn" id="opSendBtn">いまのいたに書きこむ</button>
+      </div>
+      <p class="hint">名前のよこに<strong>「うんえい」の印</strong>がついて表示されます。この印はサーバーが付けるもので、ほかの人には出せません。ふつうの利用者は「うんえい」「かんりにん」を名前に使えません。<br />
+      書きこみの制限（30秒あき・1日20回・同じ文の繰り返し）はかかりません。かきこみを止めている間も書けます。<strong>あとから消したり直したりはできない</strong>ので、送る前に読み返してください。</p>
+
       <h3 style="font-size:13px;margin:18px 0 6px">通報されたレス</h3>
       <div class="list" id="reportList"><p class="empty">読み込み中…</p></div>
       <p class="hint">通報の多い順に並びます。自動では消しません。<strong>隠す</strong>は画面から見えなくするだけで、あとから戻せます。<strong>消す</strong>はデータごと削除するので戻せません。問題がなければ<strong>通報をクリア</strong>すると一覧から外れます。</p>
@@ -872,6 +888,7 @@ function reportRow(r, inBoardList){
   const meta = document.createElement("div"); meta.className = "meta";
   const add = (txt) => { const sp = document.createElement("span"); sp.textContent = txt; meta.appendChild(sp); };
   add(r.board_id + "まいめ >>" + r.no);
+  if(r.official) add("運営");
   add("ID:" + r.poster_id);
   if(Number(r.report_count) > 0) add("通報 " + r.report_count + "件");
   if(r.hidden) add("（隠しています）");
@@ -968,6 +985,42 @@ async function hideByPoster(boardId, pid){
   toast((data && data.hidden ? data.hidden : 0) + "件を隠しました");
 }
 
+/* ---- 運営として書きこむ ---- */
+const RE_OP_BODY = /^[ぁ-ゖゝゞー、。！？ 　]+$/;
+const RE_OP_NAME = /^[ぁ-ゖゝゞー]+$/;
+
+function opCount(){
+  const n = [...$("opBody").value.trim()].length;
+  $("opCount").textContent = n + " / 100";
+}
+
+async function opSend(){
+  const name = $("opName").value.trim();
+  const body = $("opBody").value.trim().replace(/[\r\n]+/g, " ");
+
+  if(!body){ msg("boardMsg", "ほんぶんが空です。", "err"); return; }
+  if([...body].length > 100){ msg("boardMsg", "100文字をこえています。", "err"); return; }
+  if(!RE_OP_BODY.test(body)){ msg("boardMsg", "ほんぶんに使えない文字があります（ひらがなと、ー、。！？ だけ）。", "err"); return; }
+  if(name && !RE_OP_NAME.test(name)){ msg("boardMsg", "なまえはひらがなだけで書いてください。", "err"); return; }
+  if(!confirm("運営として、いまのいたに書きこみます。\n\n" + (name || "うんえい") + "：" + body +
+              "\n\nあとから消したり直したりはできません。よろしいですか。")) return;
+
+  const btn = $("opSendBtn");
+  btn.disabled = true; btn.textContent = "送っています…";
+  const { data, error } = await sb.rpc("post_message", {
+    p_name: name, p_body: body, p_reply_to: null, p_official: true,
+  });
+  btn.disabled = false; btn.textContent = "いまのいたに書きこむ";
+
+  if(error){ msg("boardMsg", "書きこめませんでした：" + (error.message || ""), "err"); return; }
+
+  $("opBody").value = ""; opCount();
+  msg("boardMsg", (data.board_id + "まいめのいたに >>" + data.no + " として書きこみました。") +
+    (data.filled ? "このいたはいっぱいになり、つぎのいたがはじまりました。" : ""), "ok");
+  await loadBoard();
+  if(shownBoard !== null) await loadBoardPosts(shownBoard);
+}
+
 async function toggleBoard(){
   if(!boardCfg) return;
   const next = !boardCfg.enabled;
@@ -994,6 +1047,8 @@ function bindEvents(){
   $("nCancelBtn").addEventListener("click", resetNewsForm);
 
   $("boardToggleBtn").addEventListener("click", toggleBoard);
+  $("opBody").addEventListener("input", opCount);
+  $("opSendBtn").addEventListener("click", opSend);
   $("boardReloadBtn").addEventListener("click", loadBoard);
   $("boardViewBtn").addEventListener("click", () => {
     const v = parseInt($("boardSel").value, 10);
