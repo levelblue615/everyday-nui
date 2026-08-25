@@ -17,7 +17,7 @@
   form-action 'none';
 " />
 <title>ぬい掲示板｜ぬいについてのサイト</title>
-<meta name="description" content="ひらがなだけで書きこめる、ぬいのための掲示板です。板は毎日かわり、過去の板は履歴から読めます。" />
+<meta name="description" content="ひらがなだけで書きこめる、ぬいのための掲示板です。板は300件たまると次にうつり、前の板は履歴から読めます。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -72,7 +72,10 @@
     flex-wrap:wrap;align-items:baseline;gap:0 7px}
   .phead .no{color:#a695b6;font-weight:700}
   .phead .nm{color:var(--berry-dk);font-weight:700}
-  .phead .pid{font-size:11px;letter-spacing:.02em}
+  /* ---- 日付のくぎり。板が何日かにわたるので、変わり目に入れます ---- */
+  .daysep{display:flex;align-items:center;gap:9px;margin:14px 0 4px}
+  .daysep::before,.daysep::after{content:"";flex:1;height:1px;background:var(--line)}
+  .daysep span{font-size:11px;color:var(--muted);letter-spacing:.06em;white-space:nowrap}
   .pbody{margin:2px 0 0;font-size:14.5px;line-height:1.8;word-break:break-word}
   .pbody .anc{color:var(--sage);font-weight:700;cursor:pointer;text-decoration:underline;
     text-underline-offset:3px}
@@ -168,7 +171,7 @@
   <section class="felt">
     <div class="boardbar">
       <p class="today" id="boardTitle">よみこみちゅう…<span class="cnt" id="boardCount"></span></p>
-      <select id="histSel" aria-label="板の日付をえらぶ"></select>
+      <select id="histSel" aria-label="いたをえらぶ"></select>
     </div>
 
     <p class="closednote" id="closedNote" style="display:none"></p>
@@ -201,6 +204,7 @@
     <button id="sendBtn" class="send" disabled>かきこむ</button>
 
     <p class="rule">ひらがな・「ー」「、」「。」「！」「？」だけが使えます。100文字まで。
+    いたは300件たまるとおわり、つぎのいたがはじまります。
     かきこんだものは消せません。あらしや、ひとをきずつける書きこみは消すことがあります。</p>
   </section>
 
@@ -263,8 +267,9 @@ function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show");
 function banner(html){ const b=$("banner"); b.innerHTML=html; b.classList.add("show"); }
 
 let sb=null, myUid=null;
-let today=null, viewDate=null, page=0;
-let posts=[], boardsList=[], config={enabled:true,max_posts_per_day:300,notice:null};
+let currentBoard=null, viewBoard=null, page=0;
+let posts=[], boardsList=[];
+let config={enabled:true,max_posts_per_board:300,notice:null,current_board_id:null};
 let replyTo=null, composing=false, sending=false;
 
 /* ---- Turnstile ---- */
@@ -322,44 +327,45 @@ async function init(){
   restoreName();
   bindEvents();
 
-  const { data: d } = await sb.rpc("board_today");
-  today = d;
+  await loadConfig();
+  currentBoard = config.current_board_id;
 
   const q = new URLSearchParams(location.search);
-  viewDate = q.get("d") || today;
+  const b = parseInt(q.get("b"), 10);
+  viewBoard = (Number.isFinite(b) && b > 0) ? b : currentBoard;
   page = Math.max(0, (parseInt(q.get("p"), 10) || 1) - 1);
 
-  await loadConfig();
   await loadBoards();
   await loadPosts();
 }
 
 async function loadConfig(){
-  const { data } = await sb.from("board_config").select("enabled,max_posts_per_day,notice").eq("id",1).maybeSingle();
+  const { data } = await sb.from("board_config")
+    .select("enabled,max_posts_per_board,notice,current_board_id").eq("id",1).maybeSingle();
   if(data) config = data;
 }
 
 async function loadBoards(){
   const { data } = await sb.from("boards")
-    .select("board_date,post_count").order("board_date",{ ascending:false }).limit(90);
+    .select("id,opened_at,closed_at,post_count,status")
+    .order("id",{ ascending:false }).limit(60);
   boardsList = data || [];
   const sel = $("histSel");
   sel.textContent = "";
-  const seen = new Set(boardsList.map(b => b.board_date));
-  if(!seen.has(today)) boardsList.unshift({ board_date: today, post_count: 0 });
   boardsList.forEach(b => {
     const o = document.createElement("option");
-    o.value = b.board_date;
-    o.textContent = (b.board_date === today ? "きょう " : "") + jpDate(b.board_date) + "（" + b.post_count + "）";
-    if(b.board_date === viewDate) o.selected = true;
+    o.value = String(b.id);
+    o.textContent = boardLabel(b) + "（" + b.post_count + "）";
+    if(b.id === viewBoard) o.selected = true;
     sel.appendChild(o);
   });
 }
 
 async function loadPosts(){
+  if(viewBoard == null){ posts = []; page = 0; render(); return; }
   const { data, error } = await sb.from("posts")
-    .select("id,no,name,body,reply_to,poster_id,created_at")
-    .eq("board_date", viewDate).order("no", { ascending:true });
+    .select("id,no,name,body,reply_to,created_at")
+    .eq("board_id", viewBoard).order("no", { ascending:true });
   if(error){ toast("よみこみに失敗しました"); return; }
   posts = data || [];
   const maxPage = Math.max(0, Math.ceil(posts.length / PER_PAGE) - 1);
@@ -367,52 +373,79 @@ async function loadPosts(){
   render();
 }
 
-/* ---- 表示 ---- */
-function jpDate(s){
-  const [y,m,d] = s.split("-").map(Number);
-  const w = "日月火水木金土"[new Date(y, m-1, d).getDay()];
-  return `${y}.${String(m).padStart(2,"0")}.${String(d).padStart(2,"0")}（${w}）`;
+/* ---- 表示 ----
+   板が何日かにわたるので、時刻だけでは「いつの書きこみか」が分からなくなります。
+   日付が変わるところに区切りを入れ、画像には日付も焼きこんでいます。 */
+function boardName(id){ return id + "まいめのいた"; }
+
+function md(iso){
+  const d = new Date(iso);
+  return (d.getMonth()+1) + "/" + d.getDate();
+}
+function dayKey(iso){
+  const d = new Date(iso);
+  return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+}
+function dayLabel(iso){
+  const d = new Date(iso);
+  const w = "日月火水木金土"[d.getDay()];
+  return (d.getMonth()+1) + "月" + d.getDate() + "日（" + w + "）";
 }
 function hhmm(iso){
   const d = new Date(iso);
   return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
 }
+function boardLabel(b){
+  const from = md(b.opened_at);
+  if(b.status === "open") return boardName(b.id) + "・いま " + from + "〜";
+  return boardName(b.id) + " " + from + "〜" + md(b.closed_at || b.opened_at);
+}
 
 function render(){
-  $("boardTitle").firstChild.nodeValue = jpDate(viewDate) + " のいた ";
-  $("boardCount").textContent = posts.length + "／" + config.max_posts_per_day;
+  const isCurrent = (viewBoard === currentBoard);
+  $("boardTitle").firstChild.nodeValue = (viewBoard ? boardName(viewBoard) : "いた") + " ";
+  $("boardCount").textContent = posts.length + "／" + config.max_posts_per_board;
 
-  const isToday = (viewDate === today);
-  const full = posts.length >= config.max_posts_per_day;
   const note = $("closedNote");
-  if(!isToday){
-    note.textContent = "このいたは、もうおわりました。かきこみは「きょうのいた」へどうぞ。";
+  if(!isCurrent){
+    note.textContent = "このいたは、もうおわりました。かきこみは「いまのいた」へどうぞ。";
     note.style.display = "";
   } else if(!config.enabled){
     note.textContent = config.notice || "ただいま、かきこみをおやすみしています。";
     note.style.display = "";
-  } else if(full){
-    note.textContent = "きょうのいたは、いっぱいになりました。またあしたね。";
-    note.style.display = "";
   } else {
     note.style.display = "none";
   }
-  $("formCard").style.display = (isToday && config.enabled && !full) ? "" : "none";
+  $("formCard").style.display = (isCurrent && config.enabled) ? "" : "none";
 
   const list = $("postList");
   list.textContent = "";
   if(posts.length === 0){
     const p = document.createElement("p");
     p.className = "empty";
-    p.textContent = isToday ? "まだだれもいません。さいしょのぬいになりませんか。" : "このいたには、なにもありませんでした。";
+    p.textContent = isCurrent ? "まだだれもいません。さいしょのぬいになりませんか。" : "このいたには、なにもありませんでした。";
     list.appendChild(p);
     $("pager").textContent = "";
     return;
   }
 
   const slice = posts.slice(page*PER_PAGE, (page+1)*PER_PAGE);
-  slice.forEach(p => list.appendChild(postNode(p)));
+  let lastDay = null;
+  slice.forEach(p => {
+    const k = dayKey(p.created_at);
+    if(k !== lastDay){ list.appendChild(daySep(p.created_at)); lastDay = k; }
+    list.appendChild(postNode(p));
+  });
   renderPager();
+}
+
+function daySep(iso){
+  const d = document.createElement("div");
+  d.className = "daysep";
+  const s = document.createElement("span");
+  s.textContent = dayLabel(iso);
+  d.appendChild(s);
+  return d;
 }
 
 function postNode(p){
@@ -426,7 +459,6 @@ function postNode(p){
   add("no", p.no);
   add("nm", p.name);
   add("tm", hhmm(p.created_at));
-  add("pid", "ID:" + p.poster_id);
   el.appendChild(h);
 
   const b = document.createElement("p");
@@ -446,7 +478,7 @@ function postNode(p){
 
   const acts = document.createElement("div");
   acts.className = "pacts";
-  if(viewDate === today && config.enabled){
+  if(viewBoard === currentBoard && config.enabled){
     const r = document.createElement("button");
     r.type = "button"; r.className = "rep"; r.textContent = "へんしん";
     r.addEventListener("click", () => setReply(p.no));
@@ -471,9 +503,16 @@ function renderPager(){
     b.type = "button";
     b.textContent = (i*PER_PAGE+1) + "-" + Math.min((i+1)*PER_PAGE, posts.length);
     if(i === page) b.classList.add("on");
-    b.addEventListener("click", () => { page = i; render(); window.scrollTo({top:0,behavior:"smooth"}); });
+    b.addEventListener("click", () => {
+      page = i; pushUrl(); render(); window.scrollTo({top:0,behavior:"smooth"});
+    });
     pg.appendChild(b);
   }
+}
+
+function pushUrl(){
+  const q = "?b=" + viewBoard + (page > 0 ? "&p=" + (page+1) : "");
+  history.replaceState(null, "", q);
 }
 
 function jumpTo(no){
@@ -533,7 +572,6 @@ function checkInput(){
 /* ---- かきこむ ---- */
 const ERR = {
   "board-closed":      "ただいま、かきこみをおやすみしています。",
-  "board-full":        "きょうのいたは、いっぱいになりました。",
   "name-too-long":     "なまえは12文字までです。",
   "name-not-hiragana": "なまえは、ひらがなだけで書いてください。",
   "body-empty":        "なにか書いてください。",
@@ -542,7 +580,7 @@ const ERR = {
   "body-repetitive":   "おなじ文字がつづきすぎています。",
   "too-fast":          "つづけてのかきこみは、30びょうまってください。",
   "daily-limit":       "きょうのかきこみは、ここまでです。またあしたね。",
-  "duplicate":         "おなじことを、きょうもう書いています。",
+  "duplicate":         "おなじことを、さっき書いています。",
   "not-signed-in":     "よみこみ中です。すこし待ってからお試しください。",
 };
 
@@ -569,12 +607,22 @@ async function send(){
   clearReply();
   saveName(name);
   checkInput();
+
+  // どのいたに入ったかはサーバーが決めます。
+  // 満了していれば、この書きこみの直後に次のいたが開いています。
+  await loadConfig();
+  currentBoard = config.current_board_id;
+  if(data && data.board_id) viewBoard = data.board_id;
+  await loadBoards();
   await loadPosts();
   page = Math.max(0, Math.ceil(posts.length / PER_PAGE) - 1);
+  pushUrl();
   render();
   const el = $("r" + (data && data.no));
   if(el) el.scrollIntoView({ behavior:"smooth", block:"center" });
-  toast("かきこみました");
+  toast(data && data.filled
+    ? "このいたは、いっぱいになりました。つぎのいたがはじまっています。"
+    : "かきこみました");
 }
 
 async function reportPost(id, no){
@@ -647,7 +695,7 @@ function renderCanvas(){
   ctx.fillText("ぬい掲示板", PAD, 62);
   ctx.fillStyle = "#9a8fa8";
   ctx.font = '500 20px "M PLUS Rounded 1c", sans-serif';
-  ctx.fillText(jpDate(viewDate) + "　" + (page*PER_PAGE+1) + "-" + (page*PER_PAGE+slice.length), PAD, 94);
+  ctx.fillText(boardName(viewBoard) + "　" + (page*PER_PAGE+1) + "-" + (page*PER_PAGE+slice.length), PAD, 94);
 
   ctx.strokeStyle = "#d9c2e4"; ctx.lineWidth = 2;
   ctx.setLineDash([4, 5]);
@@ -666,7 +714,7 @@ function renderCanvas(){
     ctx.fillText(p.name, x, y); x += ctx.measureText(p.name).width + 10;
     ctx.font = '400 16px "M PLUS Rounded 1c", sans-serif';
     ctx.fillStyle = "#9a8fa8";
-    const tail = hhmm(p.created_at) + "  ID:" + p.poster_id;
+    const tail = md(p.created_at) + " " + hhmm(p.created_at);
     ctx.fillText(tail, x, y);
     y += 26;
 
@@ -715,7 +763,7 @@ async function saveImage(){
   try {
     const a = document.createElement("a");
     a.href = url;
-    a.download = "ぬい掲示板_" + viewDate + "_" + (page*PER_PAGE+1) + ".png";
+    a.download = "ぬい掲示板_" + viewBoard + "まいめ_" + (page*PER_PAGE+1) + ".png";
     document.body.appendChild(a); a.click(); a.remove();
     toast("画像を保存しました");
     setTimeout(() => URL.revokeObjectURL(url), 4000);
@@ -738,8 +786,8 @@ function bindEvents(){
   $("saveImgBtn").addEventListener("click", saveImage);
   $("sheetCloseBtn").addEventListener("click", () => $("imgSheet").classList.remove("show"));
   $("histSel").addEventListener("change", async (e) => {
-    viewDate = e.target.value; page = 0; clearReply();
-    history.replaceState(null, "", "?d=" + viewDate);
+    viewBoard = parseInt(e.target.value, 10); page = 0; clearReply();
+    pushUrl();
     await loadPosts();
     window.scrollTo({ top:0, behavior:"smooth" });
   });
