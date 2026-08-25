@@ -273,6 +273,7 @@
         <button class="btn ghost" id="boardReloadBtn">読み直す</button>
       </div>
       <p class="hint">「止める」を押すと、その時点から新しいかきこみを一切受け付けなくなります。すでにあるレスは残り、読むことはできます。荒らしが続くときの緊急用です。</p>
+      <p class="hint">いたは上限に達すると自動で次にうつります。手で切り替える操作はありません。</p>
 
       <h3 style="font-size:13px;margin:18px 0 6px">通報されたレス</h3>
       <div class="list" id="reportList"><p class="empty">読み込み中…</p></div>
@@ -280,10 +281,10 @@
 
       <h3 style="font-size:13px;margin:18px 0 6px">いたを見る</h3>
       <div class="row-btns" style="margin-bottom:10px">
-        <input id="boardDateInput" type="date" style="max-width:190px" />
-        <button class="btn ghost" id="boardViewBtn">この日を見る</button>
+        <select id="boardSel" style="max-width:230px"></select>
+        <button class="btn ghost" id="boardViewBtn">このいたを見る</button>
       </div>
-      <div class="list" id="boardPostList"><p class="empty">日付をえらんでください。</p></div>
+      <div class="list" id="boardPostList"><p class="empty">いたをえらんでください。</p></div>
       <p class="hint">通報が上がっていないレスも、ここから隠したり消したりできます。新しいものが上に出ます。</p>
     </section>
 
@@ -808,18 +809,47 @@ async function loadBoard(){
   boardCfg = data;
 
   grid.textContent = "";
-  grid.appendChild(statCell("きょうのレス", data.posts_today, "件", true,
-    "上限" + data.max_per_day));
+  grid.appendChild(statCell("いまのいた", data.current_board + "まいめ", "", true,
+    (data.current_count || 0) + " / " + data.max_per_board));
+  grid.appendChild(statCell("きょうのレス", data.posts_today, "件", false));
   grid.appendChild(statCell("通報あり", data.reports_open, "件", true));
   grid.appendChild(statCell("これまでのレス", data.posts_total, "件", false));
-  grid.appendChild(statCell("いたの数", data.boards_total, "日", false));
+  grid.appendChild(statCell("いたの数", data.boards_total, "枚", false));
   grid.appendChild(statCell("隠したレス", data.posts_hidden, "件", false));
   grid.appendChild(statCell("かきこみ", data.enabled ? "受付中" : "停止中", "", false));
 
   $("boardStat").textContent = data.enabled ? "" : "停止中";
   $("boardToggleBtn").textContent = data.enabled ? "かきこみを止める" : "かきこみを再開する";
 
+  await loadBoardList(data.current_board);
   await loadReports();
+}
+
+/* ---- いたの一覧（「いたを見る」のえらび） ---- */
+async function loadBoardList(current){
+  const sel = $("boardSel");
+  const { data, error } = await sb.from("boards")
+    .select("id,opened_at,closed_at,post_count,status")
+    .order("id", { ascending:false }).limit(60);
+  if(error || !data) return;
+  const keep = sel.value;
+  sel.textContent = "";
+  data.forEach(b => {
+    const o = document.createElement("option");
+    o.value = String(b.id);
+    const from = shortDate(b.opened_at);
+    o.textContent = b.id + "まいめ　" +
+      (b.status === "open" ? from + "〜（いま）" : from + "〜" + shortDate(b.closed_at || b.opened_at)) +
+      "　" + b.post_count + "件";
+    sel.appendChild(o);
+  });
+  sel.value = keep || String(current || (data[0] && data[0].id) || "");
+}
+
+function shortDate(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  return (d.getMonth()+1) + "/" + d.getDate();
 }
 
 async function loadReports(){
@@ -841,7 +871,7 @@ function reportRow(r, inBoardList){
 
   const meta = document.createElement("div"); meta.className = "meta";
   const add = (txt) => { const sp = document.createElement("span"); sp.textContent = txt; meta.appendChild(sp); };
-  add(dotted(r.board_date) + " >>" + r.no);
+  add(r.board_id + "まいめ >>" + r.no);
   add("ID:" + r.poster_id);
   if(Number(r.report_count) > 0) add("通報 " + r.report_count + "件");
   if(r.hidden) add("（隠しています）");
@@ -879,7 +909,7 @@ function reportRow(r, inBoardList){
     const all = document.createElement("button");
     all.className = "iconbtn del"; all.type = "button";
     all.textContent = "このIDをまとめて隠す";
-    all.addEventListener("click", () => hideByPoster(r.board_date, r.poster_id));
+    all.addEventListener("click", () => hideByPoster(r.board_id, r.poster_id));
     acts.appendChild(all);
   }
 
@@ -892,7 +922,7 @@ async function deletePost(id, no){
   const { error } = await sb.rpc("admin_delete_post", { p_post_id: id });
   if(error){ toast("削除できませんでした"); return; }
   await loadBoard();
-  if(shownDate) await loadBoardPosts(shownDate);
+  if(shownBoard !== null) await loadBoardPosts(shownBoard);
   toast("削除しました");
 }
 
@@ -903,19 +933,19 @@ async function dismissReports(id){
   toast("通報をクリアしました");
 }
 
-/* ---- ある日の板をまとめて見る ---- */
-let shownDate = null;
+/* ---- ひとつの板をまとめて見る ---- */
+let shownBoard = null;
 
-async function loadBoardPosts(date){
+async function loadBoardPosts(boardId){
   const el = $("boardPostList");
   el.innerHTML = '<p class="empty">読み込み中…</p>';
-  const { data, error } = await sb.rpc("admin_board_posts", { p_board_date: date || null });
+  const { data, error } = await sb.rpc("admin_board_posts", { p_board_id: boardId || null });
   if(error){ el.innerHTML = '<p class="empty">読み込めませんでした。</p>'; return; }
-  shownDate = date || null;
+  shownBoard = boardId || null;
   const rows = data || [];
   el.textContent = "";
   if(rows.length === 0){
-    el.innerHTML = '<p class="empty">この日は書きこみがありません。</p>';
+    el.innerHTML = '<p class="empty">このいたには書きこみがありません。</p>';
     return;
   }
   rows.forEach(r => el.appendChild(reportRow(r, true)));
@@ -925,16 +955,16 @@ async function hidePost(id, hidden){
   const { error } = await sb.rpc("admin_hide_post", { p_post_id: id, p_hidden: hidden });
   if(error){ toast("できませんでした"); return; }
   await loadBoard();
-  if(shownDate !== null) await loadBoardPosts(shownDate);
+  if(shownBoard !== null) await loadBoardPosts(shownBoard);
   toast(hidden ? "隠しました" : "もどしました");
 }
 
-async function hideByPoster(date, pid){
-  if(!confirm(dotted(date) + " の ID:" + pid + " のレスを、すべて隠します。よろしいですか。")) return;
-  const { data, error } = await sb.rpc("admin_hide_by_poster", { p_board_date: date, p_poster_id: pid });
+async function hideByPoster(boardId, pid){
+  if(!confirm(boardId + "まいめのいたの ID:" + pid + " のレスを、すべて隠します。よろしいですか。")) return;
+  const { data, error } = await sb.rpc("admin_hide_by_poster", { p_board_id: boardId, p_poster_id: pid });
   if(error){ toast("できませんでした"); return; }
   await loadBoard();
-  if(shownDate !== null) await loadBoardPosts(shownDate);
+  if(shownBoard !== null) await loadBoardPosts(shownBoard);
   toast((data && data.hidden ? data.hidden : 0) + "件を隠しました");
 }
 
@@ -965,7 +995,10 @@ function bindEvents(){
 
   $("boardToggleBtn").addEventListener("click", toggleBoard);
   $("boardReloadBtn").addEventListener("click", loadBoard);
-  $("boardViewBtn").addEventListener("click", () => loadBoardPosts($("boardDateInput").value || null));
+  $("boardViewBtn").addEventListener("click", () => {
+    const v = parseInt($("boardSel").value, 10);
+    loadBoardPosts(Number.isFinite(v) ? v : null);
+  });
 
   $("bAddBtn").addEventListener("click", addBehaviors);
   $("bSearch").addEventListener("input", renderBehaviors);
